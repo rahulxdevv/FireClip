@@ -1,0 +1,33 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+backend/.venv/
+.pytest_cache/
+backend/contract_check.db*
+backend/data/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/*.tsbuildinfo
+node_modules/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test artifacts
+*.log
+smoke_tmp*

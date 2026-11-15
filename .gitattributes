@@ -1,0 +1,56 @@
+# Normalize line endings in the repository to LF, whatever the host OS.
+* text=auto
+
+# Shell scripts run inside Linux containers - they must never be checked out
+# as CRLF, or the interpreter fails with "bad interpreter: /bin/sh^M".
+*.sh text eol=lf
+
+# Files consumed by Linux/Docker tooling.
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+*.dockerfile text eol=lf
+.dockerignore text eol=lf
+docker-compose.yml text eol=lf
+docker-compose.yaml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.cfg text eol=lf
+*.mako text eol=lf
+*.service text eol=lf
+Makefile text eol=lf
+
+# Windows-native entry points keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Lockfiles are diffed in reviews and compared by CI - keep them stable.
+package-lock.json text eol=lf
+pnpm-lock.yaml text eol=lf
+yarn.lock text eol=lf
+requirements*.txt text eol=lf
+
+# Binary assets are never converted or diffed.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.mkv binary
+*.mp3 binary
+*.wav binary
+*.m4a binary
+*.zip binary
+*.gz binary
+*.pdf binary

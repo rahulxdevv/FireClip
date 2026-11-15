@@ -1,0 +1,114 @@
+name: fireclip
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fireclip}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fireclip}
+      POSTGRES_DB: ${POSTGRES_DB:-fireclip}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fireclip} -d ${POSTGRES_DB:-fireclip}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment: &backend_env
+      APP_ENV: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fireclip}:${POSTGRES_PASSWORD:-fireclip}@postgres:5432/${POSTGRES_DB:-fireclip}
+      REDIS_URL: redis://redis:6379/0
+      JOB_RUNNER: arq
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (32+ random bytes)}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:8000}
+      CORS_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DATA_DIR: /data
+      AUTO_MIGRATE: "false"
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
+      TRANSCRIPTION_ENGINE: ${TRANSCRIPTION_ENGINE:-faster_whisper}
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      WHISPER_BEAM_SIZE: ${WHISPER_BEAM_SIZE:-5}
+      WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-0}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-1}
+      RENDER_CRF: ${RENDER_CRF:-20}
+      RENDER_X264_PRESET: ${RENDER_X264_PRESET:-veryfast}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DIARIZATION_MODE: ${DIARIZATION_MODE:-off}
+      AI_PROVIDER: ${AI_PROVIDER:-heuristic}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FACEBOOK_CLIENT_ID: ${FACEBOOK_CLIENT_ID:-}
+      FACEBOOK_CLIENT_SECRET: ${FACEBOOK_CLIENT_SECRET:-}
+      INSTAGRAM_CLIENT_ID: ${INSTAGRAM_CLIENT_ID:-}
+      INSTAGRAM_CLIENT_SECRET: ${INSTAGRAM_CLIENT_SECRET:-}
+      TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY:-}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - media:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ["worker"]
+    environment: *backend_env
+    volumes:
+      - media:/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Internal Docker DNS name baked into Next rewrites.
+        API_BASE_URL: http://api:8000
+    restart: unless-stopped
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
