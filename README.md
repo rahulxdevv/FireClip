@@ -13,6 +13,7 @@
   <a href="https://github.com/rahulxdevv/FireClip/stargazers"><img src="https://img.shields.io/github/stars/rahulxdevv/FireClip?style=flat-square&logo=github&label=stars" alt="GitHub stars" /></a>
   <a href="https://github.com/rahulxdevv/FireClip/network/members"><img src="https://img.shields.io/github/forks/rahulxdevv/FireClip?style=flat-square&logo=github&label=forks" alt="GitHub forks" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License AGPL-3.0" /></a>
+  <a href="https://github.com/rahulxdevv/FireClip/actions/workflows/ci.yml"><img src="https://github.com/rahulxdevv/FireClip/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker" alt="Docker ready" />
 </p>
 
