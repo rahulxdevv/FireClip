@@ -123,7 +123,7 @@ export default function LivePage() {
             </Button>
             <p className="text-[11px] leading-relaxed text-faint">
               Recording requires yt-dlp. Streams are captured until you stop them; the file then enters the
-              standard pipeline. Respect the creator's terms and platform rules.
+              standard pipeline. Respect the creator&apos;s terms and platform rules.
             </p>
           </form>
         </Panel>

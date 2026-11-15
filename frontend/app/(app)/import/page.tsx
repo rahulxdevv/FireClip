@@ -129,7 +129,7 @@ export default function ImportPage() {
             </div>
             <ul className="mt-3 space-y-2.5 text-[11.5px] leading-relaxed text-muted">
               <li>Only publicly accessible content is supported.</li>
-              <li>Downloading must comply with the platform's terms and copyright.</li>
+              <li>Downloading must comply with the platform&apos;s terms and copyright.</li>
               <li>
                 FireClip does not accept cookies, credentials, DRM keys or any access-control bypass.
               </li>

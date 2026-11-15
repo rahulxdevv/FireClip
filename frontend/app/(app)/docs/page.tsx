@@ -118,7 +118,7 @@ OLLAMA_MODEL=llama3.1`}</CodeBlock>
             <p className="mt-3">
               Workspace keys are encrypted at rest and take precedence over environment keys. Use{" "}
               <Link href="/ai-settings" className="doc-link">AI & transcription</Link> to test a provider - the test
-              performs a real request and reports latency or the provider's error.
+              performs a real request and reports latency or the provider&apos;s error.
             </p>
           </Doc>
 

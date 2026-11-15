@@ -661,7 +661,7 @@ export default function EditorPage() {
                     </label>
                   </div>
                   <p className="mt-2 text-[10.5px] leading-relaxed text-faint">
-                    Face detection uses OpenCV's Haar cascade when installed. It sets a stable crop anchor for
+                    Face detection uses OpenCV&apos;s Haar cascade when installed. It sets a stable crop anchor for
                     the selected range; adjust it freely.
                   </p>
                 </div>
@@ -1055,7 +1055,7 @@ export default function EditorPage() {
         <p className="text-[12.5px] leading-relaxed text-muted">
           Part 1 runs {formatTimecode(draft.trim_start_ms)} → {formatTimecode(playhead)}, part 2 runs{" "}
           {formatTimecode(playhead)} → {formatTimecode(draft.trim_end_ms)}. Both are added to the source
-          video's clip list, where you can open them individually.
+          video&apos;s clip list, where you can open them individually.
         </p>
       </Dialog>
 

@@ -25,3 +25,5 @@ FireClip's own code is AGPL-3.0 (see [LICENSE](../LICENSE)); the components it d
 | Redis | RSALv2 / SSPLv1 (Redis 7) - review before offering it as a service |
 
 Transitive dependencies carry their own licenses. Generate a full report with `pip-licenses` and `license-checker` before redistribution.
+
+The CI `licenses` job does this on every run and uploads `licenses/python.md` and `licenses/node.json` as a build artifact, so this table can be checked against generated output rather than memory.

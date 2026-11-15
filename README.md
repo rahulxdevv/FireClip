@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./frontend/public/icon.svg" width="76" height="76" alt="FireClip logo" />
+  <img src="./frontend/public/icon.svg" width="72" height="72" alt="FireClip logo" />
 </p>
 
 <h1 align="center">FireClip</h1>
@@ -10,11 +10,23 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/rahulxdevv/FireClip/stargazers"><img src="https://img.shields.io/github/stars/rahulxdevv/FireClip?style=flat-square&logo=github&label=stars" alt="GitHub stars" /></a>
-  <a href="https://github.com/rahulxdevv/FireClip/network/members"><img src="https://img.shields.io/github/forks/rahulxdevv/FireClip?style=flat-square&logo=github&label=forks" alt="GitHub forks" /></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License AGPL-3.0" /></a>
   <a href="https://github.com/rahulxdevv/FireClip/actions/workflows/ci.yml"><img src="https://github.com/rahulxdevv/FireClip/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
-  <img src="https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker" alt="Docker ready" />
+  <img src="https://img.shields.io/github/stars/rahulxdevv/FireClip?style=flat-square&logo=github&label=stars" alt="GitHub stars" />
+  <img src="https://img.shields.io/github/forks/rahulxdevv/FireClip?style=flat-square&logo=github&label=forks" alt="GitHub forks" />
+  <img src="https://img.shields.io/github/issues/rahulxdevv/FireClip?style=flat-square&logo=github&label=issues" alt="Open issues" />
+  <img src="https://img.shields.io/github/last-commit/rahulxdevv/FireClip?style=flat-square&label=last%20commit" alt="Last commit" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square&logo=gnu&logoColor=white" alt="License AGPL-3.0" /></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind 4" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.12" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 16" />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
 </p>
 
 Give FireClip a podcast, interview, webinar or stream. It transcribes it, scores the moments worth clipping with a reason you can audit, gives you a timeline to edit, renders vertical clips with FFmpeg, and publishes to YouTube, Facebook, Instagram or TikTok through your own OAuth apps.
@@ -59,6 +71,70 @@ Want it in the cloud instead? The [Render blueprint](https://render.com/deploy?r
 3. Open **Clip discovery**, approve a candidate, then **Open in editor**.
 4. Adjust crop and captions, choose a preset, hit **Render**, download from **Exports**.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  B["Browser"]
+
+  subgraph app["FireClip"]
+    direction TB
+    N["Next.js 16<br/>App Router, /api rewrite"]
+    API["FastAPI<br/>routers and services"]
+  end
+
+  subgraph bg["Background jobs"]
+    direction TB
+    Q[["Redis + ARQ"]]
+    W["Worker<br/>ingest, render, publish"]
+  end
+
+  subgraph store["Storage"]
+    direction TB
+    DB[("PostgreSQL<br/>or SQLite")]
+    FS[("Media<br/>disk or S3")]
+    RP[("Rendered<br/>exports")]
+  end
+
+  subgraph ext["Media and platforms"]
+    direction TB
+    TOOLS["FFmpeg, ffprobe, yt-dlp"]
+    AI["Whisper ASR<br/>optional LLM"]
+    PLAT["YouTube, Facebook<br/>Instagram, TikTok"]
+  end
+
+  B -->|"same-origin /api"| N
+  N --> API
+  API --> DB
+  API --> FS
+  API -->|"enqueue"| Q
+  API --> AI
+  Q --> W
+  W --> TOOLS
+  W --> AI
+  W --> FS
+  W --> RP
+  W --> DB
+  W -->|"OAuth upload"| PLAT
+```
+
+Publishing goes out through each platform's official API using your own OAuth app; progress and failures are stored verbatim rather than retried into silence.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+  I["Ingest<br/>validate, probe, audio"] --> T["Transcribe<br/>word timestamps"]
+  T --> A["Analyze<br/>scored signals, reason"]
+  A --> C["Cut<br/>candidate clips"]
+  C --> E["Edit<br/>crop, captions, music"]
+  E --> R["Render<br/>FFmpeg, probed output"]
+  R --> P["Publish<br/>OAuth upload"]
+  P --> M["Measure<br/>metrics or manual"]
+```
+
+Each stage is a real background job, not a request handler, so a long source never blocks the UI. The same task callables run under ARQ in Docker and inline locally. Details in [Architecture](docs/architecture.md).
+
 ## Features
 
 | Area | What you get |
@@ -74,18 +150,6 @@ Want it in the cloud instead? The [Render blueprint](https://render.com/deploy?r
 | Teams | Workspaces with owner/admin/editor/viewer roles, invitations, audit log |
 
 Transcription, LLM providers and publishing need your own credentials. Payments, email notifications and stock footage are not included - the full status table is in [Architecture](docs/architecture.md#feature-status).
-
-## How it works
-
-```text
-Browser ──same-origin /api──► Next.js 16 ──► FastAPI ─┬─► PostgreSQL / SQLite
-                                                      ├─► local storage or S3
-                                                      ├─► FFmpeg, ffprobe, yt-dlp
-                                                      ├─► ASR and optional LLM
-                                                      └─► Redis + ARQ worker
-```
-
-Ingest → transcribe → analyze → cut → edit → render → publish → measure. Each stage is a real background job, and failures keep their exact error text. More in [Architecture](docs/architecture.md).
 
 ## Configuration
 
@@ -113,13 +177,19 @@ Proxy examples, backups, scaling and an operations checklist: [Deployment](docs/
 
 ## Docs
 
-- [Configuration](docs/configuration.md) - requirements, every variable, ports, tuning
-- [Deployment](docs/deployment.md) - Render, VPS, Dokploy, production self-hosting
-- [Guides](docs/guides.md) - speech recognition, AI providers, OAuth publishing, S3, live recording
-- [Troubleshooting](docs/troubleshooting.md) - symptoms, fixes, known limitations
-- [Architecture](docs/architecture.md) - pipeline, feature status, project structure
-- [Roadmap](docs/roadmap.md) - what's next, what isn't planned
-- [Third-party licenses](docs/licensing.md) - dependency licenses
+| Document | Covers |
+| --- | --- |
+| [Configuration](docs/configuration.md) | Requirements, every variable, ports, tuning |
+| [Deployment](docs/deployment.md) | Render, VPS, Dokploy, production self-hosting |
+| [Guides](docs/guides.md) | Speech recognition, AI providers, OAuth publishing, S3, live recording |
+| [Troubleshooting](docs/troubleshooting.md) | Symptoms, fixes, known limitations |
+| [Architecture](docs/architecture.md) | Pipeline, feature status, project structure |
+| [Roadmap](docs/roadmap.md) | What's next, what isn't planned |
+| [Third-party licenses](docs/licensing.md) | Dependency licenses |
+
+## Status
+
+The backend suite (36 tests), the TypeScript check, the production build and ESLint all run in CI on every push. Docker images, the Render blueprint and live OAuth/AI calls are not exercised there because they need a Docker host or real credentials. Known gaps: [Troubleshooting](docs/troubleshooting.md#known-limitations).
 
 ## Security
 
@@ -127,10 +197,6 @@ Proxy examples, backups, scaling and an operations checklist: [Deployment](docs/
 - Provider and OAuth tokens encrypted with AES-GCM derived from `JWT_SECRET`.
 - Workspace-scoped media, SSRF-guarded URL imports, audit logs and rate limits.
 - Back up `JWT_SECRET`: losing it invalidates sessions and makes encrypted tokens unrecoverable.
-
-## Status
-
-The backend suite (36 tests), the TypeScript check and the production build pass, and a fresh Alembic migration applies cleanly. Docker images, the Render blueprint and live OAuth/AI calls were not exercised here because they need a Docker host or real credentials. Known gaps: [Troubleshooting](docs/troubleshooting.md#known-limitations).
 
 ## License
 

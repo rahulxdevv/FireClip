@@ -189,7 +189,7 @@ export default function AccountsPage() {
           ) : null}
           <p className="text-[11.5px] leading-relaxed text-faint">
             Callback URL: <code className="font-mono text-muted">/api/publishing/callback/&lt;platform&gt;</code> on
-            your backend public URL. Add it to the platform's developer console.
+            your backend public URL. Add it to the platform&apos;s developer console.
           </p>
         </div>
       </Dialog>

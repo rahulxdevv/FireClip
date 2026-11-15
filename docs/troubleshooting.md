@@ -33,6 +33,7 @@ Checked in the development environment on **2026-11-15**:
 | --- | --- |
 | Backend test suite | **36 passed** |
 | TypeScript + production build | **Passed**, 22 routes |
+| ESLint | **0 errors**, 48 warnings (React hook rules tracked as warnings) |
 | Fresh Alembic migration | Applied; `alembic check` clean |
 | API contract sweep | All page-used endpoints returned expected shapes |
 | Production Next proxy | Registration and cookie auth work; multipart upload returns 201 |
