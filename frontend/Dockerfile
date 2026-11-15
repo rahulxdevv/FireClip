@@ -26,5 +26,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
+# 3000 is the default; Compose overrides PORT to match WEB_PORT.
 EXPOSE 3000
 CMD ["node", "server.js"]

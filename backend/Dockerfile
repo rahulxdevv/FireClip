@@ -36,10 +36,11 @@ RUN chmod +x docker-entrypoint.sh \
 
 USER fireclip
 
+# The API binds to $PORT (set by Compose or the platform); 8000 is the default.
 EXPOSE 8000
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=40s --retries=5 \
-    CMD curl -fsS http://127.0.0.1:8000/health || exit 1
+    CMD curl -fsS "http://127.0.0.1:${PORT:-8000}/health" || exit 1
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["api"]

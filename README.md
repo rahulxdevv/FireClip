@@ -53,6 +53,8 @@ Open **http://localhost:3000** and register - the first account becomes owner of
 | API | http://localhost:8000 |
 | OpenAPI docs | http://localhost:8000/docs |
 
+If 3000 or 8000 is already taken, set `WEB_PORT` and `API_PORT` in `.env` before starting. Compose binds the containers to those numbers too, so the app, the host mapping and any reverse proxy all agree.
+
 Without Docker (Python 3.10-3.12, Node 20+, FFmpeg and ffprobe on `PATH`):
 
 ```bash
@@ -169,7 +171,7 @@ Full variable list, ports by deployment type and performance tuning: [Configurat
 
 | Target | How |
 | --- | --- |
-| VPS with Docker | `docker compose up --build -d`, then proxy 3000/8000 and terminate TLS |
+| VPS with Docker | `docker compose up --build -d`, then proxy the web and API ports and terminate TLS |
 | Render | [One-click blueprint](https://render.com/deploy?repo=https://github.com/rahulxdevv/FireClip) - the free plan sleeps, has 512 MB and ephemeral media |
 | Dokploy | Compose application with `JWT_SECRET` set; PostgreSQL and Redis come with the stack |
 

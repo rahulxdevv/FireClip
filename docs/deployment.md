@@ -37,7 +37,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Put Caddy, Nginx or Traefik in front of ports `3000` and `8000`, terminate TLS there, and set the OAuth callback base URL to your API domain. Details are in [Production self-hosting](#production-self-hosting).
+Put Caddy, Nginx or Traefik in front of ports `3000` and `8000` (`WEB_PORT` and `API_PORT` if you changed them), terminate TLS there, and set the OAuth callback base URL to your API domain. Details are in [Production self-hosting](#production-self-hosting).
 
 ## Dokploy
 
@@ -48,8 +48,10 @@ Dokploy can deploy this repository in either of two ways. The short answer: **ye
 1. In Dokploy, create a **Compose** application and connect `github.com/rahulxdevv/FireClip`.
 2. Use the repository `docker-compose.yml`.
 3. Add `JWT_SECRET` (32+ random bytes) in the environment editor.
-4. Attach your domain to the **web** service on port `3000`.
+4. Attach your domain to the **web** service. The port must be the one the container listens on: `3000` by default, or your `WEB_PORT` if you changed it. Set `WEB_PORT` and `API_PORT` in the same environment editor when 3000/8000 are already taken on the host; the containers bind to those numbers, so the domain port matches.
 5. Deploy. The stack starts PostgreSQL, Redis, the API, the worker and the web app automatically.
+
+A 502 from Dokploy usually means the domain points at a port nothing is listening on inside the container. The host mapping (`WEB_PORT:WEB_PORT`) and the domain port must agree.
 
 For a public production install, also set:
 
@@ -91,6 +93,8 @@ api.example.com {
     }
 }
 ```
+
+The proxy targets the container port, which follows `WEB_PORT`/`API_PORT`: if you set `WEB_PORT=3009` and `API_PORT=8008`, use `reverse_proxy web:3009` and `reverse_proxy api:8008`.
 
 Nginx: set `client_max_body_size 4g;` and `proxy_request_buffering off;` for large uploads. Uvicorn already runs with `--proxy-headers`. Set `COOKIE_SECURE=true`, real public URLs and matching CORS origins when TLS is enabled.
 
