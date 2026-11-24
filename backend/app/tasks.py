@@ -8,13 +8,14 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from .config import settings
 from .database import session_scope
 from .jobs import JobCancelled, JobReporter, create_pipeline_job, enqueue, task
 from .models import (
     AiAnalysis,
+    Campaign,
     CandidateClip,
     CaptionStyle,
     EditingProject,
@@ -76,7 +77,9 @@ def _chain_transcription(video_id: str, workspace_id: str, *, engine: str = "aut
     enqueue(job.id)
 
 
-def _chain_analysis(video_id: str, workspace_id: str) -> None:
+def _chain_analysis(
+    video_id: str, workspace_id: str, *, replace_existing: bool = True
+) -> None:
     with session_scope() as db:
         existing = db.scalar(
             select(PipelineJob).where(
@@ -93,7 +96,11 @@ def _chain_analysis(video_id: str, workspace_id: str) -> None:
             video_id=video_id,
             kind="analysis",
             task_name="analyze_video",
-            payload={"video_id": video_id, "provider": "auto"},
+            payload={
+                "video_id": video_id,
+                "provider": "auto",
+                "replace_existing": replace_existing,
+            },
         )
     enqueue(job.id)
 
@@ -261,7 +268,11 @@ def transcribe_video(reporter: JobReporter) -> None:
         if existing and not force:
             reporter.progress(100, "ready")
             if auto_analyze:
-                _chain_analysis(video_id, workspace_id)
+                _chain_analysis(
+                    video_id,
+                    workspace_id,
+                    replace_existing=bool(payload.get("replace_existing", True)),
+                )
             return
         if existing:
             db.delete(existing)
@@ -350,7 +361,11 @@ def transcribe_video(reporter: JobReporter) -> None:
             )
         reporter.progress(100, "ready")
         if auto_analyze:
-            _chain_analysis(video_id, workspace_id)
+            _chain_analysis(
+                video_id,
+                workspace_id,
+                replace_existing=bool(payload.get("replace_existing", True)),
+            )
     except Exception as exc:
         with session_scope() as db:
             row = db.get(Transcript, transcript_id)
@@ -375,12 +390,21 @@ def analyze_video(reporter: JobReporter) -> None:
     target_duration_ms = int(payload.get("target_duration_ms") or settings.default_clip_duration_ms)
     clip_count = int(payload.get("clip_count") or settings.default_clip_count)
     replace_existing = bool(payload.get("replace_existing", True))
+    auto_render_jobs: list[str] = []
 
     with session_scope() as db:
         video = db.get(SourceVideo, video_id)
         if not video:
             raise RuntimeError("Video not found")
         workspace_id = video.workspace_id
+        campaign = db.get(Campaign, video.campaign_id) if video.campaign_id else None
+        campaign_id = campaign.id if campaign else None
+        campaign_brief = campaign.brief if campaign else ""
+        campaign_min_score = float(campaign.min_score) if campaign else 0.0
+        campaign_automation = bool(campaign and campaign.status == "active")
+        if campaign:
+            target_duration_ms = campaign.target_duration_ms
+            clip_count = campaign.clip_count
         transcript = db.scalar(
             select(Transcript)
             .where(Transcript.video_id == video_id, Transcript.status == "completed")
@@ -430,6 +454,7 @@ def analyze_video(reporter: JobReporter) -> None:
                 target_duration_ms=target_duration_ms,
                 clip_count=clip_count,
                 total_duration_ms=total_duration_ms,
+                brief=campaign_brief,
             )
         reporter.progress(85, "analyzing")
         with session_scope() as db:
@@ -450,33 +475,146 @@ def analyze_video(reporter: JobReporter) -> None:
                 (workspace.monthly_clip_limit if workspace else 0)
                 - billing.clips_used_this_month(db, workspace_id),
             )
-            for clip in result.clips[:remaining]:
-                db.add(
-                    CandidateClip(
-                        workspace_id=workspace_id,
-                        video_id=video_id,
-                        analysis_id=analysis_id,
-                        start_ms=clip.start_ms,
-                        end_ms=clip.end_ms,
-                        duration_ms=clip.end_ms - clip.start_ms,
-                        title=clip.title,
-                        description=clip.description,
-                        hook=clip.hook,
-                        transcript_text=clip.transcript_text,
-                        explanation=clip.explanation,
-                        virality_score=clip.virality_score,
-                        engagement_potential=clip.engagement_potential,
-                        signals=clip.signals,
-                        aspect_ratio="9:16",
-                        source="ai",
+            selected = [
+                clip for clip in result.clips if clip.virality_score >= campaign_min_score
+            ][:remaining]
+
+            month_start = _now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            render_seconds_used = float(
+                db.scalar(
+                    select(func.coalesce(func.sum(UsageRecord.quantity), 0)).where(
+                        UsageRecord.workspace_id == workspace_id,
+                        UsageRecord.kind == "render_seconds",
+                        UsageRecord.created_at >= month_start,
                     )
                 )
+                or 0
+            )
+            render_minutes_used = render_seconds_used / 60
+            render_minutes_left = max(
+                0.0,
+                float(workspace.monthly_render_minutes if workspace else 0) - render_minutes_used,
+            )
+            aspect_sizes = {
+                "9:16": (1080, 1920, "tiktok"),
+                "1:1": (1080, 1080, "square"),
+                "4:5": (1080, 1350, "portrait"),
+                "16:9": (1920, 1080, "landscape"),
+            }
+            brand = dict(campaign.brand or {}) if campaign else {}
+            brand_mark = str(brand.get("logo_text") or "").strip()[:80]
+            brand_accent = str(brand.get("accent_color") or "#ff6a1f")
+            for clip in selected:
+                status = "approved" if campaign and campaign.auto_approve and campaign_automation else "suggested"
+                row = CandidateClip(
+                    workspace_id=workspace_id,
+                    video_id=video_id,
+                    analysis_id=analysis_id,
+                    start_ms=clip.start_ms,
+                    end_ms=clip.end_ms,
+                    duration_ms=clip.end_ms - clip.start_ms,
+                    title=clip.title,
+                    description=clip.description,
+                    hook=clip.hook,
+                    transcript_text=clip.transcript_text,
+                    explanation=clip.explanation,
+                    virality_score=clip.virality_score,
+                    engagement_potential=clip.engagement_potential,
+                    signals=clip.signals,
+                    aspect_ratio=campaign.aspect_ratio if campaign else "9:16",
+                    status=status,
+                    source="ai",
+                )
+                db.add(row)
+                db.flush()
+                if not (
+                    campaign
+                    and campaign.auto_render
+                    and campaign_automation
+                    and status == "approved"
+                ):
+                    continue
+                estimated_minutes = max(0.1, (clip.end_ms - clip.start_ms) / 60000)
+                if estimated_minutes > render_minutes_left:
+                    continue
+                width, height, preset = aspect_sizes.get(campaign.aspect_ratio, (1080, 1920, "tiktok"))
+                project = EditingProject(
+                    workspace_id=workspace_id,
+                    video_id=video_id,
+                    campaign_id=campaign.id,
+                    clip_id=row.id,
+                    created_by=video.created_by,
+                    name=clip.title,
+                    aspect_ratio=campaign.aspect_ratio,
+                    width=width,
+                    height=height,
+                    trim_start_ms=clip.start_ms,
+                    trim_end_ms=clip.end_ms,
+                    caption_style_id=campaign.caption_style_id,
+                    captions_enabled=True,
+                    caption_overrides=dict(campaign.caption_overrides or {}),
+                    overlays=(
+                        [
+                            {
+                                "type": "text",
+                                "text": brand_mark,
+                                "x": 0.5,
+                                "y": 0.07,
+                                "font_size": 38,
+                                "color": "#ffffff",
+                                "outline_color": brand_accent,
+                                "outline_width": 4,
+                                "start_ms": clip.start_ms,
+                                "end_ms": clip.end_ms,
+                                "animation": "none",
+                            }
+                        ]
+                        if brand_mark
+                        else []
+                    ),
+                    music=None,
+                    audio={},
+                    operations=[],
+                    status="ready",
+                )
+                db.add(project)
+                db.flush()
+                render = RenderJob(
+                    workspace_id=workspace_id,
+                    editing_project_id=project.id,
+                    created_by=video.created_by,
+                    preset=preset,
+                    format="mp4",
+                    status="queued",
+                )
+                db.add(render)
+                db.flush()
+                pipeline = PipelineJob(
+                    workspace_id=workspace_id,
+                    video_id=video_id,
+                    kind="rendering",
+                    task_name="render_video",
+                    payload={
+                        "render_job_id": render.id,
+                        "preset": preset,
+                        "format": "mp4",
+                        "width": width,
+                        "height": height,
+                        "campaign_id": campaign.id,
+                    },
+                    status="queued",
+                    stage="queued",
+                )
+                db.add(pipeline)
+                db.flush()
+                auto_render_jobs.append(pipeline.id)
+                render_minutes_left -= estimated_minutes
             analysis.status = "completed"
             analysis.provider = result.provider
             analysis.model = result.model
             analysis.summary = result.summary
             analysis.topics = result.topics
-            analysis.clip_count = min(len(result.clips), remaining)
+            analysis.clip_count = len(selected)
             video.status = "ready"
             video.progress = 100.0
             video.error_message = None
@@ -489,6 +627,8 @@ def analyze_video(reporter: JobReporter) -> None:
                     detail={"video_id": video_id, "clips": len(result.clips)},
                 )
             )
+        for pipeline_id in auto_render_jobs:
+            enqueue(pipeline_id)
         reporter.progress(100, "ready")
     except Exception as exc:
         with session_scope() as db:
@@ -742,12 +882,26 @@ def record_live(reporter: JobReporter) -> None:
         source_url = video.source_url
     target = settings.data_dir / "tmp" / f"live-{video_id}.mp4"
     reporter.progress(2, "downloading")
-    sources.download_video(
-        source_url,
-        target,
-        on_progress=lambda pct: reporter.progress(2 + pct * 0.8, "downloading"),
-        cancel_check=reporter.check_cancelled,
-    )
+    try:
+        sources.download_video(
+            source_url,
+            target,
+            on_progress=lambda pct: reporter.progress(2 + pct * 0.8, "downloading"),
+            cancel_check=reporter.check_cancelled,
+        )
+    except JobCancelled:
+        raise
+    except Exception as exc:
+        if live_id:
+            with session_scope() as db:
+                from .models import LiveStream
+
+                live = db.get(LiveStream, live_id)
+                if live and live.status == "recording":
+                    live.status = "error"
+                    live.error_message = f"Live capture failed: {str(exc)[:600]}"
+                    live.ended_at = _now()
+        raise
     reporter.progress(85, "probing")
     key = build_key("uploads", workspace_id, f"{video_id}.mp4")
     storage.put_file(target, key, "video/mp4")
@@ -777,9 +931,14 @@ def record_live(reporter: JobReporter) -> None:
 
             live = db.get(LiveStream, live_id)
             if live:
-                live.status = "recorded"
+                # A standing auto-record entry goes back to monitoring so the next
+                # time this URL goes live it is captured again. Manual entries
+                # stay in the finished state.
+                live.status = "monitoring" if live.auto_record else "recorded"
                 live.ended_at = _now()
                 live.recording_video_id = video_id
     if info.has_audio:
-        _chain_transcription(video_id, workspace_id, auto_analyze=True)
+        _chain_transcription(
+            video_id, workspace_id, auto_analyze=bool(payload.get("auto_clip", True))
+        )
     reporter.progress(100, "ready")

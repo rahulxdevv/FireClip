@@ -23,12 +23,13 @@ import { useDebounced } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/stores";
 import { relativeTime } from "@/lib/format";
-import type { ProjectItem, Video } from "@/lib/types";
+import type { Campaign, ProjectItem, Video } from "@/lib/types";
 
 export default function VideosPage() {
   const [status, setStatus] = React.useState("all");
   const [search, setSearch] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
+  const [campaignId, setCampaignId] = React.useState("");
   const debouncedSearch = useDebounced(search, 300);
   const [projectDialog, setProjectDialog] = React.useState(false);
   const [projectForm, setProjectForm] = React.useState({ name: "", description: "" });
@@ -37,6 +38,7 @@ export default function VideosPage() {
   const query = new URLSearchParams();
   if (status !== "all") query.set("status", status === "processing" ? "transcribing" : status);
   if (projectId) query.set("project_id", projectId);
+  if (campaignId) query.set("campaign_id", campaignId);
   if (debouncedSearch.trim()) query.set("search", debouncedSearch.trim());
   const path = `/api/videos?${query.toString()}`;
 
@@ -44,6 +46,7 @@ export default function VideosPage() {
     pollMs: 4000,
   });
   const projects = useApi<ProjectItem[]>("/api/projects");
+  const campaigns = useApi<Campaign[]>("/api/campaigns");
 
   const videos = data || [];
   const processing = videos.filter((video) =>
@@ -100,11 +103,19 @@ export default function VideosPage() {
               className="pl-9"
             />
           </div>
-          <Select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="sm:w-[200px]">
+          <Select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="sm:w-[180px]">
             <option value="">All projects</option>
             {(projects.data || []).map((project) => (
               <option key={project.id} value={project.id}>
                 {project.name} ({project.video_count})
+              </option>
+            ))}
+          </Select>
+          <Select value={campaignId} onChange={(event) => setCampaignId(event.target.value)} className="sm:w-[180px]">
+            <option value="">All campaigns</option>
+            {(campaigns.data || []).map((campaign) => (
+              <option key={campaign.id} value={campaign.id}>
+                {campaign.name} ({campaign.video_count})
               </option>
             ))}
           </Select>

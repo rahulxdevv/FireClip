@@ -10,7 +10,7 @@ import { api, ApiError, errorMessage } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { toast, useSessionStore } from "@/lib/stores";
 import { formatBytes } from "@/lib/format";
-import type { ProjectItem, Video } from "@/lib/types";
+import type { Campaign, ProjectItem, Video } from "@/lib/types";
 
 const ACCEPT =
   ".mp4,.mov,.mkv,.webm,.avi,.m4v,.mpg,.mpeg,.flv,.ts,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus";
@@ -19,9 +19,11 @@ export default function UploadPage() {
   const router = useRouter();
   const workspaceId = useSessionStore((state) => state.activeWorkspaceId);
   const projects = useApi<ProjectItem[]>("/api/projects");
+  const campaigns = useApi<Campaign[]>("/api/campaigns");
   const [file, setFile] = React.useState<File | null>(null);
   const [title, setTitle] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
+  const [campaignId, setCampaignId] = React.useState("");
   const [autoPipeline, setAutoPipeline] = React.useState(true);
   const [dragging, setDragging] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
@@ -47,6 +49,7 @@ export default function UploadPage() {
     form.append("file", file);
     if (title.trim()) form.append("title", title.trim());
     if (projectId) form.append("project_id", projectId);
+    if (campaignId) form.append("campaign_id", campaignId);
     form.append("auto_pipeline", String(autoPipeline));
 
     try {
@@ -177,13 +180,23 @@ export default function UploadPage() {
                 <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={300} />
               </Field>
             </div>
-            <div className="px-5 py-3">
+            <div className="grid gap-3 px-5 py-3 sm:grid-cols-2">
               <Field label="Project">
                 <Select value={projectId} onChange={(event) => setProjectId(event.target.value)}>
                   <option value="">No project</option>
                   {(projects.data || []).map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Campaign">
+                <Select value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>
+                  <option value="">No campaign</option>
+                  {(campaigns.data || []).filter((item) => item.status !== "archived").map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
                     </option>
                   ))}
                 </Select>

@@ -42,6 +42,7 @@ export interface Video {
   id: string;
   workspace_id: string;
   project_id: string | null;
+  campaign_id?: string | null;
   title: string;
   description: string;
   source_type: string;
@@ -310,6 +311,43 @@ export interface ProjectItem {
   video_count: number;
 }
 
+export interface Campaign {
+  id: string;
+  name: string;
+  description: string;
+  brief: string;
+  status: "active" | "paused" | "archived";
+  aspect_ratio: "9:16" | "1:1" | "4:5" | "16:9";
+  target_duration_ms: number;
+  clip_count: number;
+  min_score: number;
+  caption_style_id: string | null;
+  caption_overrides: Record<string, unknown>;
+  auto_approve: boolean;
+  auto_render: boolean;
+  brand: {
+    accent_color?: string;
+    secondary_color?: string;
+    font?: string;
+    logo_text?: string;
+    watermark?: string;
+    cta?: string;
+  };
+  created_at: string;
+  updated_at: string;
+  caption_style_name: string;
+  video_count: number;
+  clip_count_actual: number;
+  approved_count: number;
+  rendered_count: number;
+  source_minutes: number;
+}
+
+export interface CampaignDetail extends Campaign {
+  videos: Video[];
+  clips: Clip[];
+}
+
 export interface Activity {
   id: string;
   action: string;
@@ -447,6 +485,10 @@ export interface LiveStream {
   url: string;
   title: string;
   status: string;
+  campaign_id: string | null;
+  auto_record: boolean;
+  auto_clip: boolean;
+  last_checked_at: string | null;
   recording_video_id: string | null;
   started_at: string | null;
   ended_at: string | null;

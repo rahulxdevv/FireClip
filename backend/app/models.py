@@ -115,6 +115,34 @@ class ApiKey(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class Campaign(TimestampMixin, Base):
+    """A reusable production brief for a batch of source videos."""
+
+    __tablename__ = "campaigns"
+    __table_args__ = (Index("ix_campaigns_workspace_created", "workspace_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    created_by: Mapped[str] = mapped_column(String(32), ForeignKey("users.id"))
+    name: Mapped[str] = mapped_column(String(160))
+    description: Mapped[str] = mapped_column(Text, default="")
+    brief: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default="active", index=True)
+    aspect_ratio: Mapped[str] = mapped_column(String(12), default="9:16")
+    target_duration_ms: Mapped[int] = mapped_column(Integer, default=45000)
+    clip_count: Mapped[int] = mapped_column(Integer, default=6)
+    min_score: Mapped[int] = mapped_column(Integer, default=0)
+    caption_style_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("caption_styles.id", ondelete="SET NULL")
+    )
+    caption_overrides: Mapped[dict] = mapped_column(JSON, default=dict)
+    auto_approve: Mapped[bool] = mapped_column(Boolean, default=False)
+    auto_render: Mapped[bool] = mapped_column(Boolean, default=False)
+    brand: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
 class Project(TimestampMixin, Base):
     __tablename__ = "projects"
     __table_args__ = (Index("ix_projects_workspace_created", "workspace_id", "created_at"),)
@@ -141,6 +169,9 @@ class SourceVideo(TimestampMixin, Base):
     )
     project_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("projects.id", ondelete="SET NULL"), index=True
+    )
+    campaign_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("campaigns.id", ondelete="SET NULL"), index=True
     )
     created_by: Mapped[str] = mapped_column(String(32), ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(300))
@@ -321,6 +352,9 @@ class EditingProject(TimestampMixin, Base):
     )
     video_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("source_videos.id", ondelete="CASCADE"), index=True
+    )
+    campaign_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("campaigns.id", ondelete="SET NULL"), index=True
     )
     clip_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("candidate_clips.id", ondelete="SET NULL")
@@ -552,6 +586,12 @@ class LiveStream(TimestampMixin, Base):
     url: Mapped[str] = mapped_column(Text)
     title: Mapped[str] = mapped_column(String(200), default="")
     status: Mapped[str] = mapped_column(String(24), default="monitoring")
+    campaign_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("campaigns.id", ondelete="SET NULL"), index=True
+    )
+    auto_record: Mapped[bool] = mapped_column(Boolean, default=False)
+    auto_clip: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     recording_video_id: Mapped[str | None] = mapped_column(
         String(32), ForeignKey("source_videos.id", ondelete="SET NULL")
     )

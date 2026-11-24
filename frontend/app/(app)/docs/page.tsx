@@ -9,6 +9,7 @@ import { Badge, Panel } from "@/components/ui";
 const SECTIONS = [
   { id: "quickstart", label: "Quick start" },
   { id: "pipeline", label: "How the pipeline works" },
+  { id: "campaigns", label: "Campaigns & live" },
   { id: "ai", label: "AI providers" },
   { id: "transcription", label: "Transcription" },
   { id: "rendering", label: "Rendering & captions" },
@@ -75,6 +76,7 @@ export default function DocsPage() {
             <ol className="list-decimal space-y-2 pl-4">
               <li>Register an account. A personal workspace is created automatically.</li>
               <li>Upload a file or import a URL from <Link href="/upload" className="doc-link">Upload</Link>. A URL import requires yt-dlp on the server.</li>
+              <li>Optionally attach the video to a <Link href="/campaigns" className="doc-link">Campaign</Link> so one brief, length, score floor and caption style drive discovery.</li>
               <li>Wait for ingestion, transcription and analysis in the video page. Long media is processed asynchronously.</li>
               <li>Open a clip in the editor, adjust the crop and captions, then render a preset.</li>
               <li>Download the file from <Link href="/exports" className="doc-link">Exports</Link> or publish it to a connected account.</li>
@@ -106,6 +108,31 @@ export default function DocsPage() {
                 </div>
               ))}
             </div>
+          </Doc>
+
+          <Doc id="campaigns" title="Campaigns & live streams">
+            <p>
+              A campaign is a reusable production brief. Its editorial direction is sent to the analysis engine, and
+              its target duration, clip count and minimum score override the workspace defaults for attached videos.
+              Brand colors can drive the highlight color, and an optional brand mark becomes a text watermark on
+              automatic renders. <strong className="text-paper">Run analysis</strong> applies the brief to every
+              attached video.
+            </p>
+            <p className="mt-3">
+              Automatic approval and rendering are separate switches. Both only run while the campaign is active;
+              auto-render also requires auto-approve and remaining monthly render minutes. Every automatic render is a
+              normal render job with a real output file.
+            </p>
+            <p className="mt-3">
+              On <Link href="/live" className="doc-link">Live streams</Link>, adding a public YouTube, Twitch or Kick URL
+              and enabling auto-record starts a background check roughly once a minute. A capture only starts when the
+              platform reports the URL is live. When it ends, auto-clip runs the recording through transcription and
+              campaign analysis, and the entry returns to monitoring for the next session.
+            </p>
+            <p className="mt-3">
+              This is post-capture clipping, not incremental clipping while the stream is still running. Nothing
+              bypasses logins, paywalls, DRM or platform access controls.
+            </p>
           </Doc>
 
           <Doc id="ai" title="AI providers">
@@ -146,8 +173,10 @@ OLLAMA_MODEL=llama3.1`}</CodeBlock>
           <Doc id="rendering" title="Rendering & captions">
             <p>
               Presets cover vertical 9:16 (1080×1920), square and landscape. Captions are burned in with libass using
-              word-timed ASS karaoke where word timings exist. Smart crop uses OpenCV Haar face detection to place a
-              static anchor; keyframed crop is stored in the draft and applied by FFmpeg.
+              word-timed ASS karaoke where word timings exist. The editor ships 20 built-in caption presets plus font,
+              size, text/highlight/box/outline colors, bold, italic, spacing, box, shadow, animation and position
+              controls; you can save the result as a workspace style. Smart crop uses OpenCV Haar face detection to
+              place a static anchor; keyframed crop is stored in the draft and applied by FFmpeg.
             </p>
             <CodeBlock>{`ffmpeg -i input.mp4 -vf "crop=...,ass=captions.ass,scale=1080:1920" \\
   -c:v libx264 -preset veryfast -crf 21 -c:a aac -b:a 192k out.mp4`}</CodeBlock>

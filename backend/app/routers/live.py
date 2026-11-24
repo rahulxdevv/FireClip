@@ -13,8 +13,8 @@ from sqlalchemy import select
 
 from ..deps import RequestContext, get_context, record_audit
 from ..jobs import cancel_job, create_pipeline_job, enqueue
-from ..models import LiveStream, PipelineJob, SourceVideo
-from ..schemas import ImportUrlRequest
+from ..models import Campaign, LiveStream, PipelineJob, SourceVideo
+from ..schemas import LiveStreamCreate, LiveStreamUpdate
 from ..services import sources
 
 router = APIRouter(prefix="/api/live-streams", tags=["live"])
@@ -29,6 +29,10 @@ def _out(stream: LiveStream) -> dict:
         "url": stream.url,
         "title": stream.title,
         "status": stream.status,
+        "campaign_id": stream.campaign_id,
+        "auto_record": stream.auto_record,
+        "auto_clip": stream.auto_clip,
+        "last_checked_at": stream.last_checked_at,
         "recording_video_id": stream.recording_video_id,
         "started_at": stream.started_at,
         "ended_at": stream.ended_at,
@@ -46,7 +50,7 @@ def list_streams(ctx: RequestContext = Depends(get_context)):
 
 
 @router.post("", status_code=201)
-def add_stream(payload: ImportUrlRequest, ctx: RequestContext = Depends(get_context)):
+def add_stream(payload: LiveStreamCreate, ctx: RequestContext = Depends(get_context)):
     ctx.require("editor")
     try:
         url = sources.validate_url(payload.url)
@@ -60,6 +64,11 @@ def add_stream(payload: ImportUrlRequest, ctx: RequestContext = Depends(get_cont
             status_code=503,
             detail="Live recording requires yt-dlp on the server. Install it and restart the API.",
         )
+    campaign_id = payload.campaign_id or None
+    if campaign_id:
+        campaign = ctx.db.get(Campaign, campaign_id)
+        if not campaign or campaign.workspace_id != ctx.workspace.id:
+            raise HTTPException(status_code=400, detail="Campaign not found")
     stream = LiveStream(
         workspace_id=ctx.workspace.id,
         created_by=ctx.user.id,
@@ -67,8 +76,12 @@ def add_stream(payload: ImportUrlRequest, ctx: RequestContext = Depends(get_cont
         url=url,
         title=(payload.title or f"{platform.title()} live stream")[:200],
         status="monitoring",
+        campaign_id=campaign_id,
+        auto_record=payload.auto_record,
+        auto_clip=payload.auto_clip,
     )
     ctx.db.add(stream)
+    ctx.db.flush()
     record_audit(ctx.db, "live.add", workspace_id=ctx.workspace.id, user_id=ctx.user.id,
                  target_type="live_stream", target_id=stream.id, ip_address=ctx.ip_address)
     ctx.db.commit()
@@ -87,6 +100,7 @@ def start_recording(stream_id: str, ctx: RequestContext = Depends(get_context)):
         raise HTTPException(status_code=503, detail="yt-dlp is required to record live streams")
     video = SourceVideo(
         workspace_id=ctx.workspace.id,
+        campaign_id=stream.campaign_id,
         created_by=ctx.user.id,
         title=stream.title or "Live recording",
         source_type=stream.platform,
@@ -107,10 +121,42 @@ def start_recording(stream_id: str, ctx: RequestContext = Depends(get_context)):
         video_id=video.id,
         kind="live",
         task_name="record_live",
-        payload={"video_id": video.id, "live_stream_id": stream.id},
+        payload={
+            "video_id": video.id,
+            "live_stream_id": stream.id,
+            "auto_clip": stream.auto_clip,
+        },
     )
     enqueue(job.id)
     return {"stream": _out(stream), "video_id": video.id, "job_id": job.id}
+
+
+@router.patch("/{stream_id}")
+def update_stream(
+    stream_id: str, payload: LiveStreamUpdate, ctx: RequestContext = Depends(get_context)
+):
+    ctx.require("editor")
+    stream = ctx.db.get(LiveStream, stream_id)
+    if not stream or stream.workspace_id != ctx.workspace.id:
+        raise HTTPException(status_code=404, detail="Live stream not found")
+    if payload.title is not None:
+        stream.title = payload.title.strip()
+    if "campaign_id" in payload.model_fields_set:
+        if payload.campaign_id:
+            campaign = ctx.db.get(Campaign, payload.campaign_id)
+            if not campaign or campaign.workspace_id != ctx.workspace.id:
+                raise HTTPException(status_code=400, detail="Campaign not found")
+            stream.campaign_id = campaign.id
+        else:
+            stream.campaign_id = None
+    if payload.auto_record is not None:
+        if payload.auto_record and not sources.ytdlp_available():
+            raise HTTPException(status_code=503, detail="yt-dlp is required for automatic recording")
+        stream.auto_record = payload.auto_record
+    if payload.auto_clip is not None:
+        stream.auto_clip = payload.auto_clip
+    ctx.db.commit()
+    return _out(stream)
 
 
 @router.post("/{stream_id}/stop")

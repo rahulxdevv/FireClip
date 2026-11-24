@@ -63,9 +63,21 @@ def _loop() -> None:
             logger.exception("Scheduler tick failed")
 
 
+def _live_loop() -> None:
+    from .services.live import check_due_live_streams
+
+    while not _stop.wait(20):
+        try:
+            check_due_live_streams()
+        except Exception:  # pragma: no cover - never kill the scheduler
+            logger.exception("Live automation tick failed")
+
+
 def start_inline_scheduler() -> threading.Thread:
     thread = threading.Thread(target=_loop, name="fireclip-scheduler", daemon=True)
     thread.start()
+    live_thread = threading.Thread(target=_live_loop, name="fireclip-live-scheduler", daemon=True)
+    live_thread.start()
     return thread
 
 

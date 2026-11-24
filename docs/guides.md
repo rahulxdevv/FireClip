@@ -75,9 +75,17 @@ MEDIA_PUBLIC_BASE_URL=https://cdn.example.com
 
 `MEDIA_PUBLIC_BASE_URL` is only needed for platforms (Instagram) that fetch media themselves. Local storage is authenticated and not public by design.
 
+## Campaigns
+
+A campaign is a production brief, not a folder. Give it an audience and editorial direction (what to prefer, what to avoid), a target clip length, a clip count, a minimum score, an aspect ratio, a caption style and optional brand fields. Attach existing videos or import new ones with the campaign preselected.
+
+**Run analysis** uses the campaign brief for every attached video, applies the target length and score floor, and can automatically approve and render strong clips. The accent color drives the caption highlight and the optional brand mark is drawn as a text watermark on automatic renders. Automatic rendering only runs when the campaign is **active**, both **auto-approve** and **auto-render** are on, and the workspace has render minutes left. Each automatic render is a real editor project and render job, not a preview.
+
 ## Live stream recording
 
 Add a public YouTube, Twitch or Kick live URL under **Live streams**, then **Start recording**. FireClip records with yt-dlp and routes the result into the normal ingest → transcribe → clip pipeline. Stop cancels the active job. DRM/private streams are not bypassed.
+
+To automate capture, enable **auto-record** on a stream and optionally choose a campaign. A background check runs about once a minute, asks the platform whether the URL is live, and only then starts a capture; offline or scheduled pages are skipped. When the capture ends, **auto-clip** sends it through transcription and campaign analysis, and the entry returns to monitoring for the next session. Stopping a capture yourself leaves it finished rather than immediately restarting. This is recording and post-capture clipping, not incremental clipping while the stream is still running.
 
 ## Rendering presets and captions
 

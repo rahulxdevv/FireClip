@@ -24,6 +24,7 @@ from ..config import settings
 from ..deps import RequestContext, get_context, notify, rate_limit, record_audit
 from ..jobs import cancel_job, create_pipeline_job, enqueue
 from ..models import (
+    Campaign,
     CandidateClip,
     EditingProject,
     ExportedVideo,
@@ -61,6 +62,7 @@ router = APIRouter(prefix="/api/videos", tags=["videos"])
 def list_videos(
     status_filter: str | None = Query(default=None, alias="status"),
     project_id: str | None = None,
+    campaign_id: str | None = None,
     search: str | None = None,
     limit: int = Query(default=100, ge=1, le=300),
     offset: int = Query(default=0, ge=0),
@@ -71,6 +73,8 @@ def list_videos(
         query = query.where(SourceVideo.status == status_filter)
     if project_id:
         query = query.where(SourceVideo.project_id == project_id)
+    if campaign_id:
+        query = query.where(SourceVideo.campaign_id == campaign_id)
     if search:
         term = f"%{search.strip()}%"
         query = query.where(or_(SourceVideo.title.ilike(term), SourceVideo.description.ilike(term)))
@@ -84,6 +88,7 @@ def list_videos(
 async def upload_video(
     file: UploadFile = File(...),
     project_id: str | None = Form(default=None),
+    campaign_id: str | None = Form(default=None),
     title: str | None = Form(default=None),
     auto_pipeline: bool = Form(default=True),
     ctx: RequestContext = Depends(get_context),
@@ -134,6 +139,11 @@ async def upload_video(
         if not project or project.workspace_id != ctx.workspace.id:
             temp_path.unlink(missing_ok=True)
             raise HTTPException(status_code=400, detail="Project not found")
+    if campaign_id:
+        campaign = ctx.db.get(Campaign, campaign_id)
+        if not campaign or campaign.workspace_id != ctx.workspace.id:
+            temp_path.unlink(missing_ok=True)
+            raise HTTPException(status_code=400, detail="Campaign not found")
 
     video_id = uuid.uuid4().hex
     suffix = Path(original).suffix.lower()
@@ -148,6 +158,7 @@ async def upload_video(
         id=video_id,
         workspace_id=ctx.workspace.id,
         project_id=project_id,
+        campaign_id=campaign_id,
         created_by=ctx.user.id,
         title=(title or Path(original).stem)[:300],
         source_type="upload",
@@ -193,9 +204,14 @@ def import_video(
             status_code=400,
             detail=f"Video exceeds the {settings.max_import_minutes} minute import limit",
         )
+    if payload.campaign_id:
+        campaign = ctx.db.get(Campaign, payload.campaign_id)
+        if not campaign or campaign.workspace_id != ctx.workspace.id:
+            raise HTTPException(status_code=400, detail="Campaign not found")
     video = SourceVideo(
         workspace_id=ctx.workspace.id,
         project_id=payload.project_id,
+        campaign_id=payload.campaign_id,
         created_by=ctx.user.id,
         title=(payload.title or info.title or "Imported video")[:300],
         description=info.description[:4000],
@@ -239,6 +255,14 @@ def update_video(video_id: str, payload: VideoUpdate, ctx: RequestContext = Depe
         video.description = payload.description.strip()
     if payload.project_id is not None:
         video.project_id = payload.project_id or None
+    if "campaign_id" in payload.model_fields_set:
+        if payload.campaign_id:
+            campaign = ctx.db.get(Campaign, payload.campaign_id)
+            if not campaign or campaign.workspace_id != ctx.workspace.id:
+                raise HTTPException(status_code=400, detail="Campaign not found")
+            video.campaign_id = campaign.id
+        else:
+            video.campaign_id = None
     ctx.db.commit()
     return video_out(video)
 

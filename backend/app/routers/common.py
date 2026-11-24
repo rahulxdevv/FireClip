@@ -56,6 +56,7 @@ def video_out(video: SourceVideo) -> dict:
         "id": video.id,
         "workspace_id": video.workspace_id,
         "project_id": video.project_id,
+        "campaign_id": video.campaign_id,
         "title": video.title,
         "description": video.description,
         "source_type": video.source_type,

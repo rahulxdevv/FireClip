@@ -14,12 +14,14 @@ import {
   PageSkeleton,
   Panel,
   PanelHeader,
+  Select,
+  Switch,
 } from "@/components/ui";
 import { useApi } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/stores";
 import { formatDateTime } from "@/lib/format";
-import type { LiveStream } from "@/lib/types";
+import type { Campaign, LiveStream } from "@/lib/types";
 
 const statusTone: Record<string, "neutral" | "flame" | "mint" | "rose" | "ember"> = {
   monitoring: "neutral",
@@ -31,8 +33,12 @@ const statusTone: Record<string, "neutral" | "flame" | "mint" | "rose" | "ember"
 
 export default function LivePage() {
   const { data, error, loading, refresh } = useApi<LiveStream[]>("/api/live-streams", { pollMs: 5000 });
+  const campaigns = useApi<Campaign[]>("/api/campaigns");
   const [url, setUrl] = React.useState("");
   const [title, setTitle] = React.useState("");
+  const [campaignId, setCampaignId] = React.useState("");
+  const [autoRecord, setAutoRecord] = React.useState(false);
+  const [autoClip, setAutoClip] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [actionId, setActionId] = React.useState<string | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -42,9 +48,18 @@ export default function LivePage() {
     setSubmitting(true);
     setFormError(null);
     try {
-      await api.post("/api/live-streams", { url: url.trim(), title: title.trim() || null });
+      await api.post("/api/live-streams", {
+        url: url.trim(),
+        title: title.trim() || null,
+        campaign_id: campaignId || null,
+        auto_record: autoRecord,
+        auto_clip: autoClip,
+      });
       setUrl("");
       setTitle("");
+      setCampaignId("");
+      setAutoRecord(false);
+      setAutoClip(true);
       refresh();
       toast("Stream added", "success");
     } catch (err) {
@@ -80,6 +95,18 @@ export default function LivePage() {
     }
   }
 
+  async function updateAutomation(stream: LiveStream, patch: Partial<LiveStream>) {
+    setActionId(stream.id);
+    try {
+      await api.patch(`/api/live-streams/${stream.id}`, patch);
+      refresh();
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setActionId(null);
+    }
+  }
+
   async function remove(stream: LiveStream) {
     if (!window.confirm("Remove this live stream? Recorded videos are kept.")) return;
     setActionId(stream.id);
@@ -98,7 +125,7 @@ export default function LivePage() {
       <PageHeader
         eyebrow="Ingest"
         title="Live streams"
-        description="Record a public live stream to disk, then let the normal transcription and clip pipeline run on the capture."
+        description="Watch public live URLs, record automatically when the stream goes live, and run the capture through a campaign’s clip brief."
       />
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
@@ -117,6 +144,30 @@ export default function LivePage() {
             <Field label="Label" hint="Optional, helps identify the recording later.">
               <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={200} />
             </Field>
+            <Field label="Campaign" hint="Recorded videos inherit the campaign brief, style and automation.">
+              <Select value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>
+                <option value="">No campaign</option>
+                {(campaigns.data || []).filter((item) => item.status !== "archived").map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </Select>
+            </Field>
+            <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+              <Switch
+                checked={autoRecord}
+                onCheckedChange={setAutoRecord}
+                label="Record automatically when this URL goes live"
+              />
+              <Switch
+                checked={autoClip}
+                onCheckedChange={setAutoClip}
+                label="Transcribe and analyse the capture when it ends"
+              />
+            </div>
+            <p className="text-[10.5px] leading-relaxed text-faint">
+              Automatic checks run about once a minute. A stream is only captured while the platform reports it
+              live; scheduled or offline pages are skipped. Nothing bypasses access controls.
+            </p>
             {formError ? <Alert>{formError}</Alert> : null}
             <Button type="submit" loading={submitting} className="w-full">
               <Radio className="h-4 w-4" /> Add stream
@@ -151,6 +202,15 @@ export default function LivePage() {
                     </div>
                     <p className="mt-2 truncate text-[13px] font-medium">{stream.title}</p>
                     <p className="mt-0.5 truncate font-mono text-[10.5px] text-faint">{stream.url}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {stream.campaign_id ? (
+                        <Badge tone="outline">
+                          {(campaigns.data || []).find((item) => item.id === stream.campaign_id)?.name || "Campaign"}
+                        </Badge>
+                      ) : null}
+                      {stream.auto_record ? <Badge tone="flame">auto-record</Badge> : null}
+                      {stream.auto_clip ? <Badge tone="neutral">auto-clip</Badge> : null}
+                    </div>
                     <p className="mt-2 text-[11px] text-faint">
                       Added {formatDateTime(stream.created_at)}
                       {stream.started_at ? ` · started ${formatDateTime(stream.started_at)}` : ""}
@@ -184,6 +244,20 @@ export default function LivePage() {
                     <Video className="h-3.5 w-3.5" /> Open the recorded video
                   </Link>
                 ) : null}
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/6 pt-3">
+                  <Switch
+                    checked={stream.auto_record}
+                    disabled={actionId === stream.id || stream.status === "recording"}
+                    onCheckedChange={(value) => updateAutomation(stream, { auto_record: value })}
+                    label="Auto-record"
+                  />
+                  <Switch
+                    checked={stream.auto_clip}
+                    disabled={actionId === stream.id}
+                    onCheckedChange={(value) => updateAutomation(stream, { auto_clip: value })}
+                    label="Auto-clip"
+                  />
+                </div>
                 {stream.error_message ? (
                   <p className="mt-2 text-[11.5px] text-rose">{stream.error_message}</p>
                 ) : null}

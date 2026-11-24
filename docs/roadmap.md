@@ -9,6 +9,7 @@ Planned work, not promises. Order may change.
 | Next | Browser E2E tests for auth, upload, editor and render |
 | Next | Richer review notifications and comment mentions |
 | Next | Live OAuth verification against each platform's sandbox |
+| Exploring | Incremental clipping while a stream is still live |
 | Later | Usage-based metering and annual plan experiments |
 | Later | Frame-by-frame speaker tracking and active-speaker crop |
 | Later | Licensed B-roll/music integrations |

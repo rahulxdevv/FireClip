@@ -102,6 +102,38 @@ def _ytdlp_command(*args: str) -> list[str]:
     return ["python", "-m", "yt_dlp", *args]
 
 
+def fetch_live_state(url: str) -> bool | None:
+    """Ask yt-dlp whether a public URL is broadcasting right now.
+
+    Returns True/False when the platform reports a definitive state and None
+    when it cannot be determined (private, geo-blocked, unsupported page).
+    """
+    if not ytdlp_available():
+        return None
+    try:
+        result = subprocess.run(
+            _ytdlp_command("--simulate", "--no-warnings", "--no-playlist", "--print", "%(is_live)s", url),
+            capture_output=True,
+            text=True,
+            timeout=45,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning("Live state check timed out for %s", url)
+        return None
+    if result.returncode != 0:
+        logger.info("Live state check failed for %s: %s", url, _clean_ytdlp_error(result.stderr))
+        return None
+    value = (result.stdout or "").strip().splitlines()
+    if not value:
+        return None
+    state = value[-1].strip().lower()
+    if state in {"true", "live", "is_live"}:
+        return True
+    if state in {"false", "offline", "not_live"}:
+        return False
+    return None
+
+
 def fetch_source_info(url: str) -> SourceInfo:
     platform = detect_platform(url)
     validate_url(url)

@@ -5,6 +5,17 @@ import { cn } from "@/lib/cn";
 import { formatMs } from "@/lib/format";
 import type { Segment } from "@/lib/types";
 
+function hexToRgba(hex: string, alpha: number): string {
+  const value = hex.replace("#", "");
+  const full = value.length === 3 ? value.split("").map((char) => char + char).join("") : value;
+  const number = Number.parseInt(full, 16);
+  if (!Number.isFinite(number) || full.length !== 6) return "rgba(11, 11, 15, " + alpha + ")";
+  const red = (number >> 16) & 255;
+  const green = (number >> 8) & 255;
+  const blue = number & 255;
+  return "rgba(" + red + ", " + green + ", " + blue + ", " + alpha + ")";
+}
+
 export function PreviewPlayer({
   src,
   trimStartMs,
@@ -29,6 +40,11 @@ export function PreviewPlayer({
     position?: string;
     box?: boolean;
     font?: string;
+    fontSize?: number;
+    boxColor?: string;
+    boxOpacity?: number;
+    italic?: boolean;
+    letterSpacing?: number;
   };
   className?: string;
   autoPlay?: boolean;
@@ -99,10 +115,14 @@ export function PreviewPlayer({
             className="max-w-[92%] rounded px-2 py-1 text-center font-bold leading-tight"
             style={{
               color: captionStyle?.textColor || "#ffffff",
-              backgroundColor: captionStyle?.box ? "rgba(0,0,0,0.55)" : "transparent",
+              backgroundColor: captionStyle?.box
+                ? hexToRgba(captionStyle.boxColor || "#0b0b0f", captionStyle.boxOpacity ?? 0.55)
+                : "transparent",
               textShadow: "0 1px 4px rgba(0,0,0,0.9)",
-              fontSize: "clamp(13px, 2.6vw, 24px)",
+              fontSize: `clamp(13px, ${Math.max(1.2, (captionStyle?.fontSize || 64) / 26)}vw, ${Math.max(18, Math.round((captionStyle?.fontSize || 64) * 0.36))}px)`,
               fontFamily: captionStyle?.font || "inherit",
+              fontStyle: captionStyle?.italic ? "italic" : "normal",
+              letterSpacing: `${captionStyle?.letterSpacing ?? 0}px`,
               textTransform: captionStyle?.uppercase ? "uppercase" : "none",
             }}
           >

@@ -8,7 +8,7 @@ import { Alert, Button, Field, Input, Panel, Select } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { toast } from "@/lib/stores";
-import type { ProjectItem, Video } from "@/lib/types";
+import type { Campaign, ProjectItem, Video } from "@/lib/types";
 
 const PLATFORMS = [
   { id: "youtube", label: "YouTube", hint: "Public videos and live replays" },
@@ -29,9 +29,11 @@ export default function ImportPage() {
   const [url, setUrl] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
+  const [campaignId, setCampaignId] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const projects = useApi<ProjectItem[]>("/api/projects");
+  const campaigns = useApi<Campaign[]>("/api/campaigns");
   const platform = detect(url);
 
   async function submit(event: React.FormEvent) {
@@ -42,6 +44,7 @@ export default function ImportPage() {
       const video = await api.post<Video>("/api/videos/import", {
         url: url.trim(),
         project_id: projectId || null,
+        campaign_id: campaignId || null,
         title: title.trim() || null,
       });
       toast("Import started", "success");
@@ -93,7 +96,7 @@ export default function ImportPage() {
               ))}
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <Field label="Title override" hint="Optional">
                 <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={300} />
               </Field>
@@ -103,6 +106,16 @@ export default function ImportPage() {
                   {(projects.data || []).map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Campaign">
+                <Select value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>
+                  <option value="">No campaign</option>
+                  {(campaigns.data || []).filter((item) => item.status !== "archived").map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
                     </option>
                   ))}
                 </Select>

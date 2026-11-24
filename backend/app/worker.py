@@ -45,6 +45,12 @@ async def enqueue_due_publishes(ctx) -> None:
             await ctx["redis"].enqueue_job("run_task", pipeline_job.id, _queue_name="fireclip")
 
 
+async def enqueue_due_live_recordings(ctx) -> None:
+    from .services.live import check_due_live_streams
+
+    await asyncio.to_thread(check_due_live_streams)
+
+
 async def startup(ctx) -> None:
     load_tasks()
     # Chained tasks (transcribe -> analyse -> render) enqueue through this pool.
@@ -55,7 +61,10 @@ async def startup(ctx) -> None:
 
 class WorkerSettings:
     functions = [run_task_async]
-    cron_jobs = [cron(enqueue_due_publishes, minute=set(range(60)), run_at_startup=True)]
+    cron_jobs = [
+        cron(enqueue_due_publishes, minute=set(range(60)), run_at_startup=True),
+        cron(enqueue_due_live_recordings, minute=set(range(60)), run_at_startup=True),
+    ]
     redis_settings = RedisSettings.from_dsn(settings.redis_url or "redis://localhost:6379")
     queue_name = "fireclip"
     max_jobs = max(1, settings.worker_concurrency)

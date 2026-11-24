@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Link2,
   LogOut,
+  Megaphone,
   Menu,
   Radio,
   Scissors,
@@ -48,6 +49,7 @@ const NAV = [
   {
     group: "Create",
     items: [
+      { href: "/campaigns", label: "Campaigns", icon: Megaphone },
       { href: "/clips", label: "Clip discovery", icon: Flame },
       { href: "/renders", label: "Render queue", icon: Clapperboard },
       { href: "/exports", label: "Exports", icon: Download },

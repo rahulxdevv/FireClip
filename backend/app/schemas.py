@@ -196,6 +196,75 @@ class ProjectOut(ORMModel):
     video_count: int = 0
 
 
+# --- Campaigns ------------------------------------------------------------
+
+
+class CampaignCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    description: str = Field(default="", max_length=2000)
+    brief: str = Field(default="", max_length=4000)
+    status: Literal["active", "paused", "archived"] = "active"
+    aspect_ratio: Literal["9:16", "1:1", "4:5", "16:9"] = "9:16"
+    target_duration_ms: int = Field(default=45000, ge=5000, le=180000)
+    clip_count: int = Field(default=6, ge=1, le=20)
+    min_score: int = Field(default=0, ge=0, le=100)
+    caption_style_id: str | None = None
+    caption_overrides: dict = Field(default_factory=dict)
+    auto_approve: bool = False
+    auto_render: bool = False
+    brand: dict = Field(default_factory=dict)
+
+
+class CampaignUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2000)
+    brief: str | None = Field(default=None, max_length=4000)
+    status: Literal["active", "paused", "archived"] | None = None
+    aspect_ratio: Literal["9:16", "1:1", "4:5", "16:9"] | None = None
+    target_duration_ms: int | None = Field(default=None, ge=5000, le=180000)
+    clip_count: int | None = Field(default=None, ge=1, le=20)
+    min_score: int | None = Field(default=None, ge=0, le=100)
+    caption_style_id: str | None = None
+    caption_overrides: dict | None = None
+    auto_approve: bool | None = None
+    auto_render: bool | None = None
+    brand: dict | None = None
+
+
+class CampaignOut(ORMModel):
+    id: str
+    name: str
+    description: str
+    brief: str
+    status: str
+    aspect_ratio: str
+    target_duration_ms: int
+    clip_count: int
+    min_score: int
+    caption_style_id: str | None
+    caption_overrides: dict
+    auto_approve: bool
+    auto_render: bool
+    brand: dict
+    created_at: datetime
+    updated_at: datetime
+    caption_style_name: str = ""
+    video_count: int = 0
+    clip_count_actual: int = 0
+    approved_count: int = 0
+    rendered_count: int = 0
+    source_minutes: float = 0
+
+
+class CampaignVideoAdd(BaseModel):
+    video_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class CampaignAnalyzeRequest(BaseModel):
+    video_ids: list[str] | None = None
+    replace_existing: bool = True
+
+
 # --- Videos ---------------------------------------------------------------
 
 
@@ -203,6 +272,7 @@ class VideoOut(ORMModel):
     id: str
     workspace_id: str
     project_id: str | None
+    campaign_id: str | None = None
     title: str
     description: str
     source_type: str
@@ -236,13 +306,30 @@ class VideoDetail(VideoOut):
 class ImportUrlRequest(BaseModel):
     url: str = Field(min_length=8, max_length=2000)
     project_id: str | None = None
+    campaign_id: str | None = None
     title: str | None = None
+
+
+class LiveStreamCreate(BaseModel):
+    url: str = Field(min_length=8, max_length=2000)
+    title: str | None = Field(default=None, max_length=200)
+    campaign_id: str | None = None
+    auto_record: bool = False
+    auto_clip: bool = True
+
+
+class LiveStreamUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    campaign_id: str | None = None
+    auto_record: bool | None = None
+    auto_clip: bool | None = None
 
 
 class VideoUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=300)
     description: str | None = None
     project_id: str | None = None
+    campaign_id: str | None = None
 
 
 class TranscribeRequest(BaseModel):
@@ -340,6 +427,11 @@ class ClipDetail(ClipOut):
     render_count: int = 0
     comment_count: int = 0
     open_comment_count: int = 0
+
+
+class CampaignDetail(CampaignOut):
+    videos: list[VideoOut] = Field(default_factory=list)
+    clips: list[ClipOut] = Field(default_factory=list)
 
 
 class ClipUpdate(BaseModel):

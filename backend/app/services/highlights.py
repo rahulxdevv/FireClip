@@ -377,6 +377,8 @@ Return JSON exactly in this shape:
 
 {performance_context}
 
+{editorial_brief}
+
 TRANSCRIPT (timestamps in seconds):
 {transcript}"""
 
@@ -419,12 +421,20 @@ def llm_analyze(
     target_duration_ms: int = 45000,
     clip_count: int = 6,
     performance_hint: str = "",
+    brief: str = "",
 ) -> AnalysisResult:
+    brief = (brief or "").strip()[:2000]
+    editorial_brief = (
+        "EDITORIAL BRIEF (follow this direction while keeping every quote faithful):\n" + brief
+        if brief
+        else "EDITORIAL BRIEF: none."
+    )
     prompt = LLM_TEMPLATE.format(
         count=clip_count,
         seconds=target_duration_ms / 1000,
         transcript=transcript_for_prompt(segments),
         performance_context=performance_hint,
+        editorial_brief=editorial_brief,
     )
     raw = provider.complete(LLM_SYSTEM, prompt, json_mode=True, max_tokens=3500)
     payload = extract_json(raw)
@@ -503,6 +513,7 @@ def analyze(
     target_duration_ms: int,
     clip_count: int,
     total_duration_ms: int | None = None,
+    brief: str = "",
 ) -> AnalysisResult:
     if provider is None:
         return heuristic_analyze(
@@ -518,4 +529,5 @@ def analyze(
         target_duration_ms=target_duration_ms,
         clip_count=clip_count,
         performance_hint=hint,
+        brief=brief,
     )

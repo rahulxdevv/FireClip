@@ -128,6 +128,9 @@ export default function EditorPage() {
   const [merging, setMerging] = React.useState(false);
   const [uploading, setUploading] = React.useState<string | null>(null);
   const [focusBusy, setFocusBusy] = React.useState(false);
+  const [templateOpen, setTemplateOpen] = React.useState(false);
+  const [templateName, setTemplateName] = React.useState("");
+  const [savingTemplate, setSavingTemplate] = React.useState(false);
 
   const history = React.useRef<Draft[]>([]);
   const future = React.useRef<Draft[]>([]);
@@ -406,8 +409,32 @@ export default function EditorPage() {
     position: String(overrides.position || activeConfig.position || "bottom"),
     box: Boolean(overrides.box ?? activeConfig.box ?? true),
     font: String(overrides.font || activeConfig.font || "inherit"),
+    fontSize: Number(overrides.font_size || activeConfig.font_size || 64),
+    boxColor: String(overrides.box_color || activeConfig.box_color || "#0b0b0f"),
+    boxOpacity: Number(overrides.box_opacity ?? activeConfig.box_opacity ?? 0.28),
+    italic: Boolean(overrides.italic ?? activeConfig.italic ?? false),
+    letterSpacing: Number(overrides.letter_spacing ?? activeConfig.letter_spacing ?? 0),
   };
 
+  async function saveTemplate() {
+    const name = templateName.trim();
+    if (!name) return;
+    setSavingTemplate(true);
+    try {
+      await api.post("/api/caption-styles", {
+        name,
+        config: { ...activeConfig, ...overrides },
+      });
+      await styles.refresh();
+      setTemplateOpen(false);
+      setTemplateName("");
+      toast("Caption template saved", "success");
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
   return (
     <div>
       <div className="mb-4">
@@ -703,6 +730,17 @@ export default function EditorPage() {
                     ))}
                   </Select>
                 </Field>
+                <div className="flex items-center justify-between gap-3">
+                  <Field label="Font family" hint="Must be installed on the render server." className="flex-1">
+                    <Input
+                      value={String(overrides.font || activeConfig.font || "Arial")}
+                      onChange={(event) => apply({ caption_overrides: { ...overrides, font: event.target.value } })}
+                    />
+                  </Field>
+                  <Button variant="outline" size="sm" className="mt-5" onClick={() => setTemplateOpen(true)}>
+                    Save as template
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <ColorField
                     label="Text"
@@ -714,7 +752,24 @@ export default function EditorPage() {
                     value={String(overrides.highlight_color || activeConfig.highlight_color || "#ff6a1f")}
                     onChange={(value) => apply({ caption_overrides: { ...overrides, highlight_color: value } })}
                   />
+                  <ColorField
+                    label="Box"
+                    value={String(overrides.box_color || activeConfig.box_color || "#0b0b0f")}
+                    onChange={(value) => apply({ caption_overrides: { ...overrides, box_color: value } })}
+                  />
+                  <ColorField
+                    label="Outline"
+                    value={String(overrides.outline_color || activeConfig.outline_color || "#0b0b0f")}
+                    onChange={(value) => apply({ caption_overrides: { ...overrides, outline_color: value } })}
+                  />
                 </div>
+                <label className="flex items-center gap-2 text-[11px] text-faint">
+                  <span className="w-20">Letter spacing</span>
+                  <input type="range" min={0} max={12} value={Number(overrides.letter_spacing ?? activeConfig.letter_spacing ?? 0)}
+                    onChange={(event) => apply({ caption_overrides: { ...overrides, letter_spacing: Number(event.target.value) } })}
+                    className="flex-1" />
+                  <span className="w-8 text-right font-mono">{Number(overrides.letter_spacing ?? activeConfig.letter_spacing ?? 0)}</span>
+                </label>
                 <label className="flex items-center gap-2 text-[11px] text-faint">
                   <span className="w-20">Size</span>
                   <input type="range" min={28} max={110} value={Number(overrides.font_size || activeConfig.font_size || 64)}
@@ -746,6 +801,9 @@ export default function EditorPage() {
                       onChange={(event) => apply({ caption_overrides: { ...overrides, animation: event.target.value } })}
                     >
                       <option value="karaoke">Word highlight</option>
+                      <option value="pop">Pop</option>
+                      <option value="bounce">Bounce</option>
+                      <option value="typewriter">Typewriter</option>
                       <option value="fade">Fade</option>
                       <option value="none">None</option>
                     </Select>
@@ -762,11 +820,40 @@ export default function EditorPage() {
                     onCheckedChange={(value) => apply({ caption_overrides: { ...overrides, box: value } })}
                     label="Background box"
                   />
+                  <Switch
+                    checked={Boolean(overrides.italic ?? activeConfig.italic ?? false)}
+                    onCheckedChange={(value) => apply({ caption_overrides: { ...overrides, italic: value } })}
+                    label="Italic"
+                  />
                 </div>
                 <p className="text-[10.5px] leading-relaxed text-faint">
                   Captions are generated as ASS with word-level karaoke timing. Emoji support depends on the
                   fonts installed on the render server.
                 </p>
+                <Dialog
+                  open={templateOpen}
+                  onOpenChange={setTemplateOpen}
+                  title="Save caption template"
+                  description="Stores the current style and overrides for reuse across projects and campaigns."
+                  footer={
+                    <>
+                      <Button variant="ghost" onClick={() => setTemplateOpen(false)}>Cancel</Button>
+                      <Button loading={savingTemplate} disabled={!templateName.trim()} onClick={saveTemplate}>
+                        Save template
+                      </Button>
+                    </>
+                  }
+                >
+                  <Field label="Template name">
+                    <Input
+                      autoFocus
+                      maxLength={80}
+                      value={templateName}
+                      onChange={(event) => setTemplateName(event.target.value)}
+                      placeholder="Launch week captions"
+                    />
+                  </Field>
+                </Dialog>
               </div>
             ) : null}
 
