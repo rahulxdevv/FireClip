@@ -48,7 +48,7 @@ Dokploy can deploy this repository in either of two ways. The short answer: **ye
 1. In Dokploy, create a **Compose** application and connect `github.com/rahulxdevv/FireClip`.
 2. Use the repository `docker-compose.yml`.
 3. Add `JWT_SECRET` (32+ random bytes) in the environment editor.
-4. Attach your domain to the **web** service. The port must be the one the container listens on: `3000` by default, or your `WEB_PORT` if you changed it. Set `WEB_PORT` and `API_PORT` in the same environment editor when 3000/8000 are already taken on the host; the containers bind to those numbers, so the domain port matches.
+4. Attach your domain to the **web** service. The port must be the one the container listens on: `3000` by default, or your `WEB_PORT` if you changed it. Set `WEB_PORT` and `API_PORT` in the same environment editor when 3000/8000 are already taken on the host; the containers bind to those numbers, so the domain port matches. Dokploy itself commonly occupies port `3000`, so `WEB_PORT=3009` with domain container port `3009` is a safe choice; set `API_PORT=8008` too if `8000` is taken.
 5. Deploy. The stack starts PostgreSQL, Redis, the API, the worker and the web app automatically.
 
 A 502 from Dokploy usually means the domain points at a port nothing is listening on inside the container. The host mapping (`WEB_PORT:WEB_PORT`) and the domain port must agree.
