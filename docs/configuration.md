@@ -32,7 +32,7 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `REDIS_URL` | empty | Enables ARQ. Without it, jobs run inline. |
 | `JOB_RUNNER` | `auto` | `auto`, `inline` or `arq`. |
 | `FRONTEND_URL` | `http://localhost:3000` | Web origin used for OAuth redirects and CORS. |
-| `BACKEND_PUBLIC_URL` | `http://localhost:8000` | Public API URL, used to build OAuth callbacks. |
+| `BACKEND_PUBLIC_URL` | `http://localhost:8000` | Public app origin used to build OAuth callbacks. In Compose, use the web origin (`http://localhost:3000`); Next proxies the callback to the API. |
 | `COOKIE_SECURE` | `false` | Set `true` behind HTTPS. |
 | `TRANSCRIPTION_ENGINE` | `auto` | `faster_whisper`, `whisper`, `openai`, `auto`. |
 | `AI_PROVIDER` | `auto` | `heuristic`, `openai`, `anthropic`, `gemini`, `ollama`. |
@@ -52,8 +52,8 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `CAMPAIGN_FEED_LABEL` | `Content Rewards` | Display label for the feed on the Campaigns page. |
 | `ALLOW_MOCK_TRANSCRIPTION` | `false` | Tests/demos only. Mock output is labelled in the UI. |
 | `API_HOST` | `127.0.0.1` | Local API bind address. Use `0.0.0.0` only when exposing it directly. |
-| `API_PORT` | `8000` | API port for the local runner and, in Compose, both the container and the host binding. |
-| `WEB_PORT` | `3000` | Web port for the local runner and, in Compose, both the container and the host binding. |
+| `API_PORT` | `8000` | API port for the local runner, and the published host port for Compose. The API container always listens on 8000 internally. |
+| `WEB_PORT` | `3000` | Web port for the local runner, and the published host port for Compose. The web container always listens on 3000 internally. |
 | `PORT` | `10000` | Public web port for the all-in-one Dockerfile and cloud hosts. |
 | `WORKER_CONCURRENCY` | `2` | Jobs processed concurrently by a worker or inline pool. |
 | `RENDER_CONCURRENCY` | `1` | Concurrent FFmpeg encodes per process. |
@@ -78,11 +78,11 @@ OAuth, S3, AI and watermark options are documented inline in [`.env.example`](..
 | Setup | Change it with | Notes |
 | --- | --- | --- |
 | Local dev runner | `API_PORT`, `WEB_PORT` in `.env` | API and Next both read the values. |
-| Docker Compose | `API_PORT`, `WEB_PORT` in `.env` | Containers bind to the same numbers as the host mapping, so a proxy targets that port. Rebuild the web image after changing `API_PORT` (the API origin is compiled into Next rewrites). |
+| Docker Compose | `API_PORT`, `WEB_PORT` in `.env` | These change host-published ports only. Containers stay on 3000/8000 internally, so a proxy or Dokploy domain always targets 3000. No rebuild is needed after changing either port. |
 | Root Dockerfile / Render | `PORT` | Next.js public port. FastAPI stays internal on 8000. |
 | Reverse proxy | Your proxy config | Point the web domain at the web container's port, not directly at the API. |
 
-With the defaults, `http://localhost:3000` is the app and `http://localhost:8000` the API. If you move to `WEB_PORT=3009`, `API_PORT=8008`, the app is on `http://localhost:3009`, and you must set `FRONTEND_URL=http://localhost:3009`, `BACKEND_PUBLIC_URL=http://localhost:8008` and `CORS_ORIGINS=http://localhost:3009` so cookies, CORS and OAuth callbacks follow.
+With the defaults, `http://localhost:3000` is the app and `http://localhost:8000` the API. If you move to `WEB_PORT=3009`, `API_PORT=8008`, the app is on `http://localhost:3009` and the API on `http://localhost:8008`, but inside the stack they still listen on 3000 and 8000. Set `FRONTEND_URL=http://localhost:3009`, `BACKEND_PUBLIC_URL=http://localhost:3009` (OAuth callbacks go through the web proxy) and `CORS_ORIGINS=http://localhost:3009`. In production, use your HTTPS web origin for both URL values.
 
 ## Performance tuning
 

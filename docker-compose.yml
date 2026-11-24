@@ -40,7 +40,7 @@ services:
       JOB_RUNNER: arq
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (32+ random bytes)}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:8000}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3000}
       CORS_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       DATA_DIR: /data
@@ -114,12 +114,12 @@ services:
       INSTAGRAM_CLIENT_SECRET: ${INSTAGRAM_CLIENT_SECRET:-}
       TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY:-}
       TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
-      # Bind inside the container on the same port the host publishes, so a
-      # reverse proxy can target the container port without guessing. Set
-      # API_PORT when 8000 is already taken on the host.
-      PORT: ${API_PORT:-8000}
+      # The API always listens on 8000 inside the compose network. API_PORT
+      # changes only the optional host mapping, so a proxy or Dokploy domain
+      # can always target container port 8000.
+      PORT: "8000"
     ports:
-      - "${API_PORT:-8000}:${API_PORT:-8000}"
+      - "${API_PORT:-8000}:8000"
     volumes:
       - media:/data
     depends_on:
@@ -144,17 +144,17 @@ services:
     build:
       context: ./frontend
       args:
-        # Internal Docker DNS name baked into Next rewrites. Rebuild the web
-        # image after changing API_PORT, because rewrites are compiled in.
-        API_BASE_URL: http://api:${API_PORT:-8000}
+        # Fixed internal origin baked into Next rewrites. API_PORT only changes
+        # the host mapping, so changing it never requires a web rebuild.
+        API_BASE_URL: http://api:8000
     restart: unless-stopped
     environment:
-      API_BASE_URL: http://api:${API_PORT:-8000}
-      # Next reads PORT at startup. Keeping it equal to WEB_PORT means the
-      # container listens on the port the host publishes and the proxy targets.
-      PORT: ${WEB_PORT:-3000}
+      API_BASE_URL: http://api:8000
+      # Next always listens on 3000 inside the network. WEB_PORT changes only
+      # the optional host mapping; a proxy or Dokploy domain targets 3000.
+      PORT: "3000"
     ports:
-      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+      - "${WEB_PORT:-3000}:3000"
     depends_on:
       api:
         condition: service_healthy

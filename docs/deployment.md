@@ -37,7 +37,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Put Caddy, Nginx or Traefik in front of ports `3000` and `8000` (`WEB_PORT` and `API_PORT` if you changed them), terminate TLS there, and set the OAuth callback base URL to your API domain. Details are in [Production self-hosting](#production-self-hosting).
+Put Caddy, Nginx or Traefik in front of the published host ports (`3000` and `8000` by default, or `WEB_PORT`/`API_PORT` if you changed them), terminate TLS there, and set the OAuth callback base URL to your public web origin. Details are in [Production self-hosting](#production-self-hosting).
 
 ## Dokploy
 
@@ -48,10 +48,10 @@ Dokploy can deploy this repository in either of two ways. The short answer: **ye
 1. In Dokploy, create a **Compose** application and connect `github.com/rahulxdevv/FireClip`.
 2. Use the repository `docker-compose.yml`.
 3. Add `JWT_SECRET` (32+ random bytes) in the environment editor.
-4. Attach your domain to the **web** service. The port must be the one the container listens on: `3000` by default, or your `WEB_PORT` if you changed it. Set `WEB_PORT` and `API_PORT` in the same environment editor when 3000/8000 are already taken on the host; the containers bind to those numbers, so the domain port matches. Dokploy itself commonly occupies port `3000`, so `WEB_PORT=3009` with domain container port `3009` is a safe choice; set `API_PORT=8008` too if `8000` is taken.
+4. Attach your domain to the **web** service with container port `3000`. That port is fixed inside the container. If Dokploy already uses host port `3000`, set `WEB_PORT=3009`; this changes only the published host port, not the domain target. Set `API_PORT=8008` too if host port `8000` is taken.
 5. Deploy. The stack starts PostgreSQL, Redis, the API, the worker and the web app automatically.
 
-A 502 from Dokploy usually means the domain points at a port nothing is listening on inside the container. The host mapping (`WEB_PORT:WEB_PORT`) and the domain port must agree.
+A 502 from Dokploy usually means the domain points at the wrong container port. The web domain must target container port `3000`, regardless of `WEB_PORT`.
 
 For a public production install, also set:
 
@@ -63,7 +63,7 @@ COOKIE_SECURE=true
 POSTGRES_PASSWORD=<a real password>
 ```
 
-The web container proxies `/api` to the internal `api` service, so you do not need to publish the API port. If you enable publishing, use the same public web origin as `BACKEND_PUBLIC_URL`; the OAuth callback path is proxied by Next.js. Do not enable `AUTO_MIGRATE=true` with Compose, because the API entrypoint already runs Alembic.
+The web container proxies `/api` to the internal `api` service, so you do not need a public API domain. If you enable publishing, use the same public web origin as `BACKEND_PUBLIC_URL`; the OAuth callback path is proxied by Next.js. Do not enable `AUTO_MIGRATE=true` with Compose, because the API entrypoint already runs Alembic.
 
 ### Single application: root Dockerfile
 
@@ -85,24 +85,23 @@ Example Caddy:
 ```caddy
 app.example.com {
     reverse_proxy web:3000
-}
-api.example.com {
-    reverse_proxy api:8000
     request_body {
         max_size 4GB
     }
 }
 ```
 
-The proxy targets the container port, which follows `WEB_PORT`/`API_PORT`: if you set `WEB_PORT=3009` and `API_PORT=8008`, use `reverse_proxy web:3009` and `reverse_proxy api:8008`.
+The proxy always targets container ports: web `3000`, API `8000`. `WEB_PORT` and `API_PORT` only change the published host ports, not these internal targets. The web app proxies `/api` and `/health`, so the API does not need its own public hostname.
 
 Nginx: set `client_max_body_size 4g;` and `proxy_request_buffering off;` for large uploads. Uvicorn already runs with `--proxy-headers`. Set `COOKIE_SECURE=true`, real public URLs and matching CORS origins when TLS is enabled.
 
 OAuth callbacks must match exactly:
 
 ```text
-https://api.example.com/api/publishing/callback/{platform}
+https://app.example.com/api/publishing/callback/{platform}
 ```
+
+Use the same origin as `BACKEND_PUBLIC_URL`. If you intentionally expose a separate API domain, replace the host with that domain.
 
 ### Storage, scaling and backups
 
