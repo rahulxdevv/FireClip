@@ -107,7 +107,7 @@ def video_detail(db: Session, video: SourceVideo) -> dict:
 
 
 def clip_out(clip: CandidateClip, video: SourceVideo | None = None, editor: EditingProject | None = None,
-             render_count: int = 0) -> dict:
+             render_count: int = 0, comment_count: int = 0, open_comment_count: int = 0) -> dict:
     return {
         "id": clip.id,
         "video_id": clip.video_id,
@@ -132,6 +132,8 @@ def clip_out(clip: CandidateClip, video: SourceVideo | None = None, editor: Edit
         "has_editing_project": editor is not None,
         "editing_project_id": editor.id if editor else None,
         "render_count": render_count,
+        "comment_count": comment_count,
+        "open_comment_count": open_comment_count,
     }
 
 

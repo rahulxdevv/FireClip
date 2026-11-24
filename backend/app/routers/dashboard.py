@@ -11,6 +11,7 @@ from ..config import settings
 from ..deps import RequestContext, get_context, record_audit
 from ..models import (
     AuditLog,
+    BillingInvoice,
     CandidateClip,
     ExportedVideo,
     Notification,
@@ -22,7 +23,7 @@ from ..models import (
     User,
 )
 from ..schemas import DashboardOut, NotificationOut, SystemStatus
-from ..services import media, publishing as pub_service, transcription
+from ..services import billing, media, publishing as pub_service, transcription
 from ..services.ai import PROVIDERS
 from ..storage import get_storage
 from .common import clip_out, render_out, video_out
@@ -241,39 +242,86 @@ def system_status(ctx: RequestContext = Depends(get_context)):
 
 
 @router.get("/billing")
-def billing(ctx: RequestContext = Depends(get_context)):
-    from datetime import datetime, timezone
-
+def billing_overview(ctx: RequestContext = Depends(get_context)):
     month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    workspace = ctx.workspace
     render_seconds = ctx.db.scalar(
         select(func.coalesce(func.sum(UsageRecord.quantity), 0)).where(
-            UsageRecord.workspace_id == ctx.workspace.id,
+            UsageRecord.workspace_id == workspace.id,
             UsageRecord.kind == "render_seconds",
             UsageRecord.created_at >= month_start,
         )
     ) or 0
     clips_this_month = ctx.db.scalar(
         select(func.count()).select_from(CandidateClip).where(
-            CandidateClip.workspace_id == ctx.workspace.id, CandidateClip.created_at >= month_start
+            CandidateClip.workspace_id == workspace.id, CandidateClip.created_at >= month_start
         )
     ) or 0
+    usage_rows = ctx.db.execute(
+        select(UsageRecord.kind, UsageRecord.provider, func.sum(UsageRecord.quantity))
+        .where(UsageRecord.workspace_id == workspace.id, UsageRecord.created_at >= month_start)
+        .group_by(UsageRecord.kind, UsageRecord.provider)
+        .order_by(func.sum(UsageRecord.quantity).desc())
+    ).all()
+    upload_bytes = ctx.db.scalar(
+        select(func.coalesce(func.sum(SourceVideo.size_bytes), 0)).where(
+            SourceVideo.workspace_id == workspace.id
+        )
+    ) or 0
+    export_bytes = ctx.db.scalar(
+        select(func.coalesce(func.sum(ExportedVideo.size_bytes), 0)).where(
+            ExportedVideo.workspace_id == workspace.id
+        )
+    ) or 0
+    invoices = ctx.db.scalars(
+        select(BillingInvoice)
+        .where(BillingInvoice.workspace_id == workspace.id)
+        .order_by(BillingInvoice.created_at.desc())
+        .limit(12)
+    ).all()
+    plan = billing.PLAN_INDEX.get(workspace.plan, billing.PLAN_INDEX["free"])
     return {
-        "plan": ctx.workspace.plan,
-        "status": "active",
+        "plan": workspace.plan,
+        "plan_name": plan["name"],
+        "status": workspace.plan_status,
+        "interval": workspace.plan_interval,
+        "renews_at": workspace.plan_renews_at,
         "limits": {
-            "clips_per_month": ctx.workspace.monthly_clip_limit,
-            "render_minutes_per_month": ctx.workspace.monthly_render_minutes,
+            "clips_per_month": workspace.monthly_clip_limit,
+            "render_minutes_per_month": workspace.monthly_render_minutes,
         },
         "usage": {
             "clips_this_month": clips_this_month,
             "render_minutes_this_month": round(float(render_seconds) / 60, 1),
+            "breakdown": [
+                {
+                    "kind": kind,
+                    "provider": provider or "local",
+                    "quantity": round(float(quantity or 0), 2),
+                }
+                for kind, provider, quantity in usage_rows
+            ],
+            "storage_bytes": int(upload_bytes) + int(export_bytes),
+            "upload_bytes": int(upload_bytes),
+            "export_bytes": int(export_bytes),
         },
-        "payment_provider": {
-            "available": False,
-            "message": "Billing is plan/usage ready but no payment provider is integrated. "
-                       "Connect Stripe (or similar) before charging customers.",
-        },
-        "invoices": [],
+        "plans": billing.PLANS,
+        "payment_provider": billing.provider_status(),
+        "invoices": [
+            {
+                "id": row.id,
+                "number": row.number,
+                "status": row.status,
+                "amount_cents": row.amount_cents,
+                "currency": row.currency,
+                "hosted_url": row.hosted_url,
+                "pdf_url": row.pdf_url,
+                "period_start": row.period_start,
+                "period_end": row.period_end,
+                "created_at": row.created_at,
+            }
+            for row in invoices
+        ],
     }
 
 

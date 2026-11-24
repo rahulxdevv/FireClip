@@ -118,6 +118,34 @@ class Settings:
     session_cookie: str = "fireclip_session"
     refresh_cookie: str = "fireclip_refresh"
     allow_registration: bool = _bool("ALLOW_REGISTRATION", True)
+    require_email_verification: bool = _bool("REQUIRE_EMAIL_VERIFICATION", False)
+    email_verification_hours: int = _int("EMAIL_VERIFICATION_HOURS", 48)
+    password_reset_minutes: int = _int("PASSWORD_RESET_MINUTES", 60)
+    invite_expiry_days: int = _int("INVITE_EXPIRY_DAYS", 7)
+
+    # Transactional email (SMTP). Without it, links are written to the log so a
+    # self-hosted install still works end to end.
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = _int("SMTP_PORT", 587)
+    smtp_username: str = os.getenv("SMTP_USERNAME", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    smtp_starttls: bool = _bool("SMTP_STARTTLS", True)
+    smtp_ssl: bool = _bool("SMTP_SSL", False)
+    smtp_timeout: int = _int("SMTP_TIMEOUT_SECONDS", 15)
+    mail_from: str = os.getenv("MAIL_FROM", "no-reply@fireclip.local")
+    mail_from_name: str = os.getenv("MAIL_FROM_NAME", "FireClip")
+
+    # Billing (Stripe). Optional: self-hosted installs can stay on the free plan.
+    stripe_secret_key: str = os.getenv("STRIPE_SECRET_KEY", "")
+    stripe_webhook_secret: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    stripe_portal_configuration: str = os.getenv("STRIPE_PORTAL_CONFIGURATION_ID", "")
+    stripe_api_base: str = os.getenv("STRIPE_API_BASE", "https://api.stripe.com")
+    stripe_price_starter_month: str = os.getenv("STRIPE_PRICE_STARTER_MONTH", "")
+    stripe_price_starter_year: str = os.getenv("STRIPE_PRICE_STARTER_YEAR", "")
+    stripe_price_studio_month: str = os.getenv("STRIPE_PRICE_STUDIO_MONTH", "")
+    stripe_price_studio_year: str = os.getenv("STRIPE_PRICE_STUDIO_YEAR", "")
+    stripe_price_agency_month: str = os.getenv("STRIPE_PRICE_AGENCY_MONTH", "")
+    stripe_price_agency_year: str = os.getenv("STRIPE_PRICE_AGENCY_YEAR", "")
 
     # CORS / URLs
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -220,6 +248,25 @@ class Settings:
             "gemini": self.gemini_api_key,
             "ollama": "local",
         }.get(provider, "")
+
+    @property
+    def email_configured(self) -> bool:
+        return bool(self.smtp_host and self.mail_from)
+
+    @property
+    def billing_configured(self) -> bool:
+        return bool(self.stripe_secret_key and self.price_map)
+
+    @property
+    def price_map(self) -> dict[str, str]:
+        return {
+            "starter:month": self.stripe_price_starter_month,
+            "starter:year": self.stripe_price_starter_year,
+            "studio:month": self.stripe_price_studio_month,
+            "studio:year": self.stripe_price_studio_year,
+            "agency:month": self.stripe_price_agency_month,
+            "agency:year": self.stripe_price_agency_year,
+        }
 
     @property
     def use_arq(self) -> bool:

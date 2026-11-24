@@ -20,6 +20,7 @@ from .routers import (
     analytics,
     assets,
     auth,
+    billing,
     clips,
     dashboard,
     editors,
@@ -27,7 +28,9 @@ from .routers import (
     projects,
     publishing,
     renders,
+    shares,
     videos,
+    webhooks,
     workspaces,
 )
 from .scheduler import start_inline_scheduler, stop_scheduler
@@ -139,7 +142,7 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-for module in (auth, workspaces, projects, videos, assets, clips, editors, renders, publishing, analytics, ai, dashboard, live):
+for module in (auth, workspaces, projects, videos, assets, clips, editors, renders, publishing, analytics, ai, dashboard, billing, shares, webhooks, live):
     app.include_router(module.router)
 
 

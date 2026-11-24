@@ -3,14 +3,16 @@ from __future__ import annotations
 
 import re
 import secrets
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..database import get_db
 from ..deps import RequestContext, get_context, record_audit
-from ..models import ApiKey, AuditLog, Membership, User, Workspace
+from ..models import ApiKey, AuditLog, EmailToken, Membership, User, Workspace
 from ..schemas import (
     ActivityOut,
     ApiKeyCreate,
@@ -23,6 +25,8 @@ from ..schemas import (
     WorkspaceUpdate,
 )
 from ..security import generate_api_key
+from ..services.email import send_workspace_invite
+from ..services.tokens import consume_email_token, issue_email_token, peek_email_token
 
 router = APIRouter(prefix="/api", tags=["workspaces"])
 
@@ -140,16 +144,21 @@ def list_members(workspace_id: str, ctx: RequestContext = Depends(get_context)):
     ]
 
 
-@router.post("/workspaces/{workspace_id}/members", response_model=MemberOut, status_code=201)
+@router.post("/workspaces/{workspace_id}/members", status_code=201)
 def add_member(workspace_id: str, payload: MemberAdd, ctx: RequestContext = Depends(get_context)):
     if workspace_id != ctx.workspace.id:
         raise HTTPException(status_code=403, detail="Switch to this workspace first")
     ctx.require("admin")
     user = ctx.db.scalar(select(User).where(func.lower(User.email) == payload.email.lower().strip()))
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="No FireClip account uses that email. Ask them to register first.",
+        # Invite the address instead of failing: the link works when they sign up.
+        return _send_invite(
+            ctx,
+            email=payload.email.lower().strip(),
+            role=payload.role,
+            workspace_id=workspace_id,
+            inviter=ctx.user.name,
+            workspace_name=ctx.workspace.name,
         )
     existing = ctx.db.scalar(
         select(Membership).where(Membership.workspace_id == workspace_id, Membership.user_id == user.id)
@@ -276,3 +285,195 @@ def audit_logs(limit: int = 50, ctx: RequestContext = Depends(get_context)):
         )
         for log, email in rows
     ]
+
+def _pending_invites(db: Session, workspace_id: str) -> list[EmailToken]:
+    now = datetime.now(timezone.utc)
+    rows = db.scalars(
+        select(EmailToken)
+        .where(
+            EmailToken.workspace_id == workspace_id,
+            EmailToken.kind == "invite",
+            EmailToken.used_at.is_(None),
+        )
+        .order_by(EmailToken.created_at.desc())
+    ).all()
+    live = []
+    for row in rows:
+        expires = row.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires > now:
+            live.append(row)
+    return live
+
+
+def _send_invite(
+    ctx: RequestContext,
+    *,
+    email: str,
+    role: str,
+    workspace_id: str,
+    inviter: str,
+    workspace_name: str,
+) -> dict:
+    existing = ctx.db.scalar(
+        select(EmailToken).where(
+            EmailToken.workspace_id == workspace_id,
+            EmailToken.kind == "invite",
+            EmailToken.email == email,
+            EmailToken.used_at.is_(None),
+        )
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="An invitation is already pending for that email")
+    raw = issue_email_token(
+        ctx.db,
+        email=email,
+        kind="invite",
+        workspace_id=workspace_id,
+        role=role,
+        expires_delta=timedelta(days=settings.invite_expiry_days),
+    )
+    record_audit(
+        ctx.db,
+        "workspace.invite",
+        workspace_id=workspace_id,
+        user_id=ctx.user.id,
+        target_type="email",
+        target_id=email,
+        ip_address=ctx.ip_address,
+        meta={"role": role},
+    )
+    ctx.db.commit()
+    sent = send_workspace_invite(email, inviter, workspace_name, role, raw)
+    return {
+        "status": "invited",
+        "email": email,
+        "role": role,
+        "email_sent": sent,
+        "dev_link": (
+            f"{settings.frontend_url.rstrip('/')}/invite/{raw}"
+            if settings.debug and not settings.email_configured
+            else None
+        ),
+    }
+
+
+@router.get("/workspaces/{workspace_id}/invites")
+def list_invites(workspace_id: str, ctx: RequestContext = Depends(get_context)):
+    if workspace_id != ctx.workspace.id:
+        raise HTTPException(status_code=403, detail="Switch to this workspace first")
+    ctx.require("admin")
+    return [
+        {
+            "id": row.id,
+            "email": row.email,
+            "role": row.role,
+            "expires_at": row.expires_at,
+            "created_at": row.created_at,
+        }
+        for row in _pending_invites(ctx.db, workspace_id)
+    ]
+
+
+@router.post("/workspaces/{workspace_id}/invites", status_code=201)
+def create_invite(workspace_id: str, payload: MemberAdd, ctx: RequestContext = Depends(get_context)):
+    if workspace_id != ctx.workspace.id:
+        raise HTTPException(status_code=403, detail="Switch to this workspace first")
+    ctx.require("admin")
+    email = payload.email.lower().strip()
+    user = ctx.db.scalar(select(User).where(func.lower(User.email) == email))
+    if user:
+        membership = ctx.db.scalar(
+            select(Membership).where(
+                Membership.workspace_id == workspace_id, Membership.user_id == user.id
+            )
+        )
+        if membership:
+            raise HTTPException(status_code=409, detail="That person is already a member")
+        ctx.db.add(Membership(workspace_id=workspace_id, user_id=user.id, role=payload.role))
+        record_audit(
+            ctx.db,
+            "workspace.member_add",
+            workspace_id=workspace_id,
+            user_id=ctx.user.id,
+            target_type="user",
+            target_id=user.id,
+            ip_address=ctx.ip_address,
+            meta={"role": payload.role},
+        )
+        ctx.db.commit()
+        return {"status": "member_added", "email": user.email, "role": payload.role}
+    return _send_invite(
+        ctx,
+        email=email,
+        role=payload.role,
+        workspace_id=workspace_id,
+        inviter=ctx.user.name,
+        workspace_name=ctx.workspace.name,
+    )
+
+
+@router.delete("/workspaces/{workspace_id}/invites/{invite_id}", status_code=204)
+def revoke_invite(workspace_id: str, invite_id: str, ctx: RequestContext = Depends(get_context)):
+    if workspace_id != ctx.workspace.id:
+        raise HTTPException(status_code=403, detail="Switch to this workspace first")
+    ctx.require("admin")
+    token = ctx.db.get(EmailToken, invite_id)
+    if not token or token.workspace_id != workspace_id or token.kind != "invite":
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    token.used_at = datetime.now(timezone.utc)
+    record_audit(
+        ctx.db,
+        "workspace.invite_revoke",
+        workspace_id=workspace_id,
+        user_id=ctx.user.id,
+        target_type="email",
+        target_id=token.email,
+        ip_address=ctx.ip_address,
+    )
+    ctx.db.commit()
+
+
+@router.post("/workspaces/invites/{token}/accept", response_model=WorkspaceSummary)
+def accept_invite(token: str, ctx: RequestContext = Depends(get_context)):
+    invite = consume_email_token(ctx.db, token, "invite")
+    if not invite or not invite.workspace_id:
+        raise HTTPException(status_code=400, detail="This invitation is invalid or has expired")
+    workspace = ctx.db.get(Workspace, invite.workspace_id)
+    if not workspace:
+        raise HTTPException(status_code=404, detail="That workspace no longer exists")
+    if invite.email.lower() != ctx.user.email.lower():
+        raise HTTPException(status_code=403, detail="This invitation was issued to a different email address")
+    membership = ctx.db.scalar(
+        select(Membership).where(
+            Membership.workspace_id == workspace.id, Membership.user_id == ctx.user.id
+        )
+    )
+    if not membership:
+        membership = Membership(workspace_id=workspace.id, user_id=ctx.user.id, role=invite.role)
+        ctx.db.add(membership)
+    record_audit(
+        ctx.db,
+        "workspace.invite_accept",
+        workspace_id=workspace.id,
+        user_id=ctx.user.id,
+        target_type="user",
+        target_id=ctx.user.id,
+        ip_address=ctx.ip_address,
+    )
+    ctx.db.commit()
+    count = ctx.db.scalar(
+        select(func.count()).select_from(Membership).where(Membership.workspace_id == workspace.id)
+    ) or 0
+    return WorkspaceSummary(
+        id=workspace.id,
+        name=workspace.name,
+        slug=workspace.slug,
+        plan=workspace.plan,
+        monthly_clip_limit=workspace.monthly_clip_limit,
+        monthly_render_minutes=workspace.monthly_render_minutes,
+        created_at=workspace.created_at,
+        role=membership.role,
+        member_count=count,
+    )

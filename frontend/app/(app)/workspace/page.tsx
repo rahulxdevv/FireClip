@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { KeyRound, Plus, ShieldCheck, Trash2, UserPlus, Users } from "lucide-react";
+import { KeyRound, Mail, Plus, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared";
 import {
   Alert,
@@ -19,7 +19,7 @@ import { useApi } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast, useSessionStore } from "@/lib/stores";
 import { formatDateTime, relativeTime } from "@/lib/format";
-import type { Activity, ApiKeyItem, Member } from "@/lib/types";
+import type { Activity, ApiKeyItem, Member, WorkspaceInvite } from "@/lib/types";
 
 export default function WorkspacePage() {
   const workspace = useSessionStore((state) =>
@@ -41,6 +41,7 @@ export default function WorkspacePage() {
   const keys = useApi<ApiKeyItem[]>("/api/api-keys");
   const audit = useApi<Activity[]>("/api/audit-logs?limit=50");
   const isAdmin = workspace?.role === "owner" || workspace?.role === "admin";
+  const invites = useApi<WorkspaceInvite[]>(workspace && isAdmin ? `/api/workspaces/${workspace.id}/invites` : null);
 
   React.useEffect(() => setName(workspace?.name || ""), [workspace?.name]);
 
@@ -65,11 +66,15 @@ export default function WorkspacePage() {
     if (!workspace) return;
     setAdding(true);
     try {
-      await api.post(`/api/workspaces/${workspace.id}/members`, addForm);
-      toast("Member added", "success");
+      const result = await api.post<{ status: string }>(
+        `/api/workspaces/${workspace.id}/members`,
+        addForm,
+      );
+      toast(result.status === "invited" ? "Invitation sent" : "Member added", "success");
       setAddOpen(false);
       setAddForm({ email: "", role: "editor" });
       members.refresh();
+      invites.refresh();
     } catch (err) {
       toast(errorMessage(err), "error");
     } finally {
@@ -99,6 +104,20 @@ export default function WorkspacePage() {
     try {
       await api.delete(`/api/workspaces/${workspace.id}/members/${member.id}`);
       members.refresh();
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revokeInvite(invite: WorkspaceInvite) {
+    if (!workspace || !window.confirm(`Revoke the invitation for ${invite.email}?`)) return;
+    setBusy(invite.id);
+    try {
+      await api.delete(`/api/workspaces/${workspace.id}/invites/${invite.id}`);
+      toast("Invitation revoked", "success");
+      invites.refresh();
     } catch (err) {
       toast(errorMessage(err), "error");
     } finally {
@@ -220,6 +239,41 @@ export default function WorkspacePage() {
           )}
         </Panel>
 
+        {isAdmin ? (
+          <Panel>
+            <PanelHeader
+              title="Pending invitations"
+              description="Single-use links for people who do not have an account yet."
+              action={<Mail className="h-4 w-4 text-faint" />}
+            />
+            {(invites.data || []).length === 0 ? (
+              <p className="px-5 py-5 text-[12px] text-faint">No pending invitations.</p>
+            ) : (
+              <div className="divide-y divide-white/6">
+                {(invites.data || []).map((invite) => (
+                  <div key={invite.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                    <Mail className="h-4 w-4 text-faint" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12.5px] text-paper">{invite.email}</p>
+                      <p className="font-mono text-[10px] text-faint">
+                        {invite.role} · expires {relativeTime(invite.expires_at)}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      loading={busy === invite.id}
+                      onClick={() => revokeInvite(invite)}
+                    >
+                      Revoke
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+        ) : null}
+
         <Panel>
           <PanelHeader
             title="API keys"
@@ -292,7 +346,7 @@ export default function WorkspacePage() {
         open={addOpen}
         onOpenChange={setAddOpen}
         title="Add a member"
-        description="They need an existing FireClip account with this email."
+        description="Existing accounts join immediately. New addresses receive a single-use invitation email."
         footer={
           <>
             <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>

@@ -3,6 +3,7 @@ export interface User {
   email: string;
   name: string;
   avatar_color: string;
+  email_verified_at?: string | null;
   created_at: string;
 }
 
@@ -11,6 +12,9 @@ export interface Workspace {
   name: string;
   slug: string;
   plan: string;
+  plan_status?: string;
+  plan_interval?: string;
+  plan_renews_at?: string | null;
   monthly_clip_limit: number;
   monthly_render_minutes: number;
   created_at: string;
@@ -133,6 +137,50 @@ export interface Clip {
   has_editing_project?: boolean;
   editing_project_id?: string | null;
   render_count?: number;
+  comment_count?: number;
+  open_comment_count?: number;
+}
+
+export interface ClipComment {
+  id: string;
+  clip_id: string;
+  user_id: string;
+  author_name: string;
+  author_email: string;
+  body: string;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  mine: boolean;
+}
+
+export interface ShareLink {
+  id: string;
+  token: string;
+  url: string;
+  has_password: boolean;
+  expires_at: string | null;
+  view_count: number;
+  created_at: string;
+}
+
+export interface PublicShare {
+  locked: boolean;
+  token?: string;
+  has_password: boolean;
+  expires_at: string | null;
+  access?: string;
+  title?: string;
+  filename?: string;
+  format?: string;
+  width?: number;
+  height?: number;
+  duration_ms?: number;
+  size_bytes?: number;
+  created_at?: string;
+  media_url?: string;
+  download_url?: string;
+  thumbnail_url?: string;
 }
 
 export interface ClipContent {
@@ -411,4 +459,77 @@ export interface ConnectStart {
   configured: boolean;
   authorize_url: string | null;
   message: string;
+}
+export interface BillingPlan {
+  id: string;
+  name: string;
+  tagline: string;
+  monthly: number;
+  yearly: number;
+  clips: number;
+  minutes: number;
+  features: string[];
+}
+
+export interface BillingInvoice {
+  id: string;
+  number: string;
+  status: string;
+  amount_cents: number;
+  currency: string;
+  hosted_url: string;
+  pdf_url: string;
+  period_start: string | null;
+  period_end: string | null;
+  created_at: string;
+}
+
+export interface BillingOverview {
+  plan: string;
+  plan_name: string;
+  status: string;
+  interval: string;
+  renews_at: string | null;
+  limits: { clips_per_month: number; render_minutes_per_month: number };
+  usage: {
+    clips_this_month: number;
+    render_minutes_this_month: number;
+    breakdown: Array<{ kind: string; provider: string; quantity: number }>;
+    storage_bytes: number;
+    upload_bytes: number;
+    export_bytes: number;
+  };
+  plans: BillingPlan[];
+  payment_provider: { available: boolean; provider: string | null; publishable_key: string | null; message: string };
+  invoices: BillingInvoice[];
+}
+
+export interface WebhookEndpoint {
+  id: string;
+  url: string;
+  description: string;
+  events: string[];
+  enabled: boolean;
+  secret: string;
+  created_at: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  event: string;
+  ok: boolean;
+  status_code: number;
+  error: string;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface WorkspaceInvite {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string;
+  expires_at: string;
+  created_at: string;
+  expired: boolean;
 }

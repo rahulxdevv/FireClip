@@ -1,16 +1,40 @@
 """Clip review, AI copy generation and hand-off to the editor."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, select
 
 from ..deps import RequestContext, get_context, rate_limit, record_audit
-from ..models import CandidateClip, EditingProject, ExportedVideo, RenderJob, SourceVideo, Transcript, TranscriptSegment
-from ..schemas import ClipContentOut, ClipDetail, ClipUpdate, EditorCreate, EditorOut
+from ..models import (
+    CandidateClip,
+    ClipComment,
+    EditingProject,
+    ExportedVideo,
+    RenderJob,
+    SourceVideo,
+    Transcript,
+    TranscriptSegment,
+    User,
+    utcnow,
+)
+from ..schemas import (
+    BulkClipRequest,
+    ClipContentOut,
+    ClipDetail,
+    ClipUpdate,
+    CommentCreate,
+    CommentOut,
+    CommentUpdate,
+    EditorCreate,
+    EditorOut,
+)
 from ..services import ai as ai_service
 from ..services import content as content_service
 from ..services.render import ASPECT_SIZES
 from ..services.transcription import SegmentData
+from ..services.webhooks import emit
 from .common import clip_out, get_clip, get_video
 
 router = APIRouter(prefix="/api/clips", tags=["clips"])
@@ -52,8 +76,26 @@ def list_clips(
         )
         if editor.clip_id
     }
+    counts: dict[str, list[int]] = {}
+    if clips:
+        rows = ctx.db.execute(
+            select(ClipComment.clip_id, ClipComment.resolved_at).where(
+                ClipComment.clip_id.in_([clip.id for clip in clips])
+            )
+        )
+        for clip_id, resolved_at in rows:
+            entry = counts.setdefault(clip_id, [0, 0])
+            entry[0] += 1
+            if resolved_at is None:
+                entry[1] += 1
     return [
-        clip_out(clip, videos.get(clip.video_id), editors.get(clip.id))
+        clip_out(
+            clip,
+            videos.get(clip.video_id),
+            editors.get(clip.id),
+            comment_count=counts.get(clip.id, [0, 0])[0],
+            open_comment_count=counts.get(clip.id, [0, 0])[1],
+        )
         for clip in clips
     ]
 
@@ -68,7 +110,19 @@ def _detail(ctx: RequestContext, clip: CandidateClip) -> dict:
         render_count = len(
             list(ctx.db.scalars(select(RenderJob.id).where(RenderJob.editing_project_id == editor.id)))
         )
-    data = clip_out(clip, video, editor, render_count)
+    comments = list(
+        ctx.db.execute(
+            select(ClipComment.resolved_at).where(ClipComment.clip_id == clip.id)
+        )
+    )
+    data = clip_out(
+        clip,
+        video,
+        editor,
+        render_count,
+        comment_count=len(comments),
+        open_comment_count=sum(1 for (resolved_at,) in comments if resolved_at is None),
+    )
     return data
 
 
@@ -130,6 +184,182 @@ def merge_clips(payload: dict, ctx: RequestContext = Depends(get_context)):
     return _detail(ctx, merged)
 
 
+@router.post("/bulk")
+def bulk_clip_action(payload: BulkClipRequest, ctx: RequestContext = Depends(get_context)):
+    """Apply one review action to many clips at once."""
+    ctx.require("editor")
+    rows = list(
+        ctx.db.scalars(
+            select(CandidateClip).where(
+                CandidateClip.workspace_id == ctx.workspace.id,
+                CandidateClip.id.in_(payload.clip_ids),
+            )
+        )
+    )
+    if len(rows) != len(set(payload.clip_ids)):
+        raise HTTPException(status_code=404, detail="One or more clips were not found")
+    if payload.action == "merge":
+        if len(rows) < 2:
+            raise HTTPException(status_code=400, detail="Select at least two clips to merge")
+        return {"action": "merge", "updated": 1, "clip": merge_clips({"clip_ids": payload.clip_ids}, ctx)}
+    if payload.action in {"approve", "reject"}:
+        status = "approved" if payload.action == "approve" else "rejected"
+        for clip in rows:
+            clip.status = status
+        record_audit(
+            ctx.db,
+            f"clip.bulk_{payload.action}",
+            workspace_id=ctx.workspace.id,
+            user_id=ctx.user.id,
+            target_type="clip",
+            target_id=",".join(payload.clip_ids)[:60],
+            ip_address=ctx.ip_address,
+            meta={"count": len(rows)},
+        )
+        ctx.db.commit()
+        emit(
+            ctx.db,
+            ctx.workspace.id,
+            "clip.approved" if payload.action == "approve" else "clip.rejected",
+            {"clip_ids": payload.clip_ids, "count": len(rows)},
+        )
+        return {"action": payload.action, "updated": len(rows)}
+    # delete
+    for clip in rows:
+        for editor in ctx.db.scalars(select(EditingProject).where(EditingProject.clip_id == clip.id)):
+            editor.clip_id = None
+        for comment in ctx.db.scalars(select(ClipComment).where(ClipComment.clip_id == clip.id)):
+            ctx.db.delete(comment)
+    ctx.db.flush()
+    for clip in rows:
+        ctx.db.delete(clip)
+    record_audit(
+        ctx.db,
+        "clip.bulk_delete",
+        workspace_id=ctx.workspace.id,
+        user_id=ctx.user.id,
+        target_type="clip",
+        target_id=",".join(payload.clip_ids)[:60],
+        ip_address=ctx.ip_address,
+        meta={"count": len(rows)},
+    )
+    ctx.db.commit()
+    return {"action": "delete", "deleted": len(rows)}
+
+
+@router.get("/{clip_id}/comments", response_model=list[CommentOut])
+def list_comments(clip_id: str, ctx: RequestContext = Depends(get_context)):
+    clip = get_clip(ctx, clip_id)
+    rows = ctx.db.execute(
+        select(ClipComment, User)
+        .join(User, User.id == ClipComment.user_id)
+        .where(ClipComment.clip_id == clip.id)
+        .order_by(ClipComment.created_at)
+    ).all()
+    return [
+        CommentOut(
+            id=comment.id,
+            clip_id=comment.clip_id,
+            user_id=comment.user_id,
+            author_name=user.name,
+            author_email=user.email,
+            body=comment.body,
+            resolved_at=comment.resolved_at,
+            created_at=comment.created_at,
+            updated_at=comment.updated_at,
+            mine=comment.user_id == ctx.user.id,
+        )
+        for comment, user in rows
+    ]
+
+
+@router.post("/{clip_id}/comments", response_model=CommentOut, status_code=201)
+def create_comment(clip_id: str, payload: CommentCreate, ctx: RequestContext = Depends(get_context)):
+    ctx.require("editor")
+    clip = get_clip(ctx, clip_id)
+    comment = ClipComment(
+        workspace_id=ctx.workspace.id,
+        clip_id=clip.id,
+        user_id=ctx.user.id,
+        body=payload.body.strip(),
+    )
+    ctx.db.add(comment)
+    record_audit(
+        ctx.db,
+        "clip.comment",
+        workspace_id=ctx.workspace.id,
+        user_id=ctx.user.id,
+        target_type="clip",
+        target_id=clip.id,
+        ip_address=ctx.ip_address,
+    )
+    ctx.db.commit()
+    ctx.db.refresh(comment)
+    return CommentOut(
+        id=comment.id,
+        clip_id=comment.clip_id,
+        user_id=comment.user_id,
+        author_name=ctx.user.name,
+        author_email=ctx.user.email,
+        body=comment.body,
+        resolved_at=None,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+        mine=True,
+    )
+
+
+def _get_comment(ctx: RequestContext, clip_id: str, comment_id: str) -> ClipComment:
+    comment = ctx.db.get(ClipComment, comment_id)
+    if not comment or comment.workspace_id != ctx.workspace.id or comment.clip_id != clip_id:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return comment
+
+
+@router.patch("/{clip_id}/comments/{comment_id}", response_model=CommentOut)
+def update_comment(
+    clip_id: str,
+    comment_id: str,
+    payload: CommentUpdate,
+    ctx: RequestContext = Depends(get_context),
+):
+    ctx.require("editor")
+    comment = _get_comment(ctx, clip_id, comment_id)
+    if comment.user_id != ctx.user.id and ctx.role not in {"owner", "admin"}:
+        raise HTTPException(status_code=403, detail="Only the author or an admin can edit this comment")
+    if payload.body is not None:
+        comment.body = payload.body.strip()
+    if payload.resolved is not None:
+        comment.resolved_at = utcnow() if payload.resolved else None
+        comment.resolved_by = ctx.user.id if payload.resolved else None
+    comment.updated_at = datetime.now(timezone.utc)
+    ctx.db.commit()
+    ctx.db.refresh(comment)
+    author = ctx.db.get(User, comment.user_id)
+    return CommentOut(
+        id=comment.id,
+        clip_id=comment.clip_id,
+        user_id=comment.user_id,
+        author_name=author.name if author else "",
+        author_email=author.email if author else "",
+        body=comment.body,
+        resolved_at=comment.resolved_at,
+        created_at=comment.created_at,
+        updated_at=comment.updated_at,
+        mine=comment.user_id == ctx.user.id,
+    )
+
+
+@router.delete("/{clip_id}/comments/{comment_id}", status_code=204)
+def delete_comment(clip_id: str, comment_id: str, ctx: RequestContext = Depends(get_context)):
+    ctx.require("editor")
+    comment = _get_comment(ctx, clip_id, comment_id)
+    if comment.user_id != ctx.user.id and ctx.role not in {"owner", "admin"}:
+        raise HTTPException(status_code=403, detail="Only the author or an admin can delete this comment")
+    ctx.db.delete(comment)
+    ctx.db.commit()
+
+
 @router.get("/{clip_id}", response_model=ClipDetail)
 def get_clip_detail(clip_id: str, ctx: RequestContext = Depends(get_context)):
     return _detail(ctx, get_clip(ctx, clip_id))
@@ -179,6 +409,7 @@ def approve_clip(clip_id: str, ctx: RequestContext = Depends(get_context)):
     clip = get_clip(ctx, clip_id)
     clip.status = "approved"
     ctx.db.commit()
+    emit(ctx.db, ctx.workspace.id, "clip.approved", {"clip_id": clip.id, "title": clip.title})
     return _detail(ctx, clip)
 
 
@@ -188,6 +419,7 @@ def reject_clip(clip_id: str, ctx: RequestContext = Depends(get_context)):
     clip = get_clip(ctx, clip_id)
     clip.status = "rejected"
     ctx.db.commit()
+    emit(ctx.db, ctx.workspace.id, "clip.rejected", {"clip_id": clip.id, "title": clip.title})
     return _detail(ctx, clip)
 
 

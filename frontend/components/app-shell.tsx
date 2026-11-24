@@ -24,12 +24,12 @@ import {
   Upload,
   Users,
   Wallet,
+  Webhook,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { Button, Dialog, Skeleton } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { api, errorMessage } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useSessionStore } from "@/lib/stores";
 import { relativeTime } from "@/lib/format";
 import type { NotificationItem, Session, SystemStatus } from "@/lib/types";
@@ -67,6 +67,7 @@ const NAV = [
       { href: "/ai-settings", label: "AI settings", icon: Sparkles },
       { href: "/workspace", label: "Workspace", icon: Users },
       { href: "/billing", label: "Plan & usage", icon: CreditCard },
+      { href: "/webhooks", label: "Webhooks", icon: Webhook },
       { href: "/settings", label: "My settings", icon: Settings },
       { href: "/docs", label: "Help & docs", icon: BookOpen },
     ],

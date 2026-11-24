@@ -27,10 +27,12 @@ from .models import (
     TranscriptSegment,
     UsageRecord,
     VideoMetadata,
+    Workspace,
 )
 from .services import ai as ai_service
-from .services import highlights, media, sources, transcription
+from .services import billing, highlights, media, sources, transcription
 from .services.render import cleanup_temp, render_project
+from .services.webhooks import emit as emit_webhook
 from .storage import build_key, get_storage
 
 logger = logging.getLogger("fireclip.tasks")
@@ -193,6 +195,18 @@ def ingest_video(reporter: JobReporter) -> None:
                     quantity=float(info.duration),
                     detail={"video_id": video_id, "size_bytes": video.size_bytes},
                 )
+            )
+            emit_webhook(
+                db,
+                workspace_id,
+                "video.ready",
+                {
+                    "video_id": video.id,
+                    "title": video.title,
+                    "duration_seconds": info.duration,
+                    "thumbnail_key": thumb_key,
+                    "source": source_type,
+                },
             )
         if not info.has_audio:
             logger.info("Video %s has no audio; skipping transcription", video_id)
@@ -430,7 +444,13 @@ def analyze_video(reporter: JobReporter) -> None:
                         CandidateClip.status == "suggested",
                     )
                 )
-            for clip in result.clips:
+            workspace = db.get(Workspace, workspace_id)
+            remaining = max(
+                0,
+                (workspace.monthly_clip_limit if workspace else 0)
+                - billing.clips_used_this_month(db, workspace_id),
+            )
+            for clip in result.clips[:remaining]:
                 db.add(
                     CandidateClip(
                         workspace_id=workspace_id,
@@ -456,7 +476,7 @@ def analyze_video(reporter: JobReporter) -> None:
             analysis.model = result.model
             analysis.summary = result.summary
             analysis.topics = result.topics
-            analysis.clip_count = len(result.clips)
+            analysis.clip_count = min(len(result.clips), remaining)
             video.status = "ready"
             video.progress = 100.0
             video.error_message = None
@@ -667,6 +687,20 @@ def render_video(reporter: JobReporter) -> None:
             clip = db.get(CandidateClip, project_snapshot.clip_id)
             if clip:
                 clip.status = "approved"
+        emit_webhook(
+            db,
+            workspace_id,
+            "clip.rendered",
+            {
+                "render_job_id": render_id,
+                "clip_id": clip_id,
+                "export_id": export.id,
+                "title": export.title,
+                "format": fmt,
+                "duration_ms": result.duration_ms,
+                "size_bytes": result.size_bytes,
+            },
+        )
     cleanup_temp(render_id)
     reporter.progress(100, "ready")
 

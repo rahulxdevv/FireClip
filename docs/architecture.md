@@ -37,25 +37,26 @@ The same task callables run through ARQ in Docker and inline locally, so the UI 
 
 | Area | What you get | Status |
 | --- | --- | --- |
-| Auth | Registration, login, HTTP-only JWT cookies, refresh, API keys, rate limits | Ready |
-| Teams | Workspaces, owner/admin/editor/viewer roles, invitations by email, audit log | Ready |
+| Auth | Registration, login, HTTP-only JWT cookies, refresh, API keys, rate limits, email verification, password reset | Ready / SMTP optional |
+| Teams | Workspaces, owner/admin/editor/viewer roles, pending invitations, audit log | Ready |
 | Ingest | Streamed uploads with validation, URL import via yt-dlp, SSRF protection | Ready |
 | Media | FFprobe metadata, thumbnails, audio extraction, sprite previews | Ready |
 | Transcription | faster-whisper, openai-whisper, hosted OpenAI Whisper, word timestamps, editable segments | Keys / install |
 | Speakers | Off, pause-based estimate (labelled), optional pyannote; manual speaker names | Ready / optional |
 | Clip discovery | Explainable heuristic scoring + OpenAI, Anthropic, Gemini or Ollama | Ready / Keys |
-| Clip review | Approve/reject, manual cuts, merge, content generation (titles, hooks, captions, hashtags) | Ready |
+| Clip review | Approve/reject, manual cuts, merge, bulk actions, threaded comments with resolve state, content generation | Ready |
 | Editor | Timeline, trim, crop keyframes, face-based auto-focus, caption styles, overlays, music, fades, undo/redo | Ready |
 | Rendering | 9:16, 1:1, 16:9, 4:5 presets; MP4/MOV/WebM; burned ASS captions; loudness normalization | Ready |
-| Queue | Progress, cancel, retry, render-minute limits, ARQ worker or inline runner | Ready |
-| Exports | Download library, thumbnails, HTTP Range streaming | Ready |
+| Queue | Progress, cancel, retry, monthly clip and render-minute limits, ARQ worker or inline runner | Ready |
+| Exports | Download library, thumbnails, HTTP Range streaming, public share links with password/expiry | Ready |
 | Publishing | YouTube, Facebook, Instagram Reels and TikTok uploads, scheduling, retries | Keys |
 | Analytics | Platform metrics sync plus clearly labelled manual measurement | Ready / Keys |
 | Live | Record public YouTube/Twitch/Kick live streams via yt-dlp | Ready / environment |
 | Dashboard | Usage, processing jobs, recent activity, notifications | Ready |
-| Billing | Plan limits and usage metering | Ready (no checkout) |
-| Payments | Stripe/checkout, invoices | Later |
-| Email | Verification, password reset, notification emails | Later |
+| Billing | Enforced clip/render limits, usage/storage metering, free/starter/studio/agency catalog, Stripe checkout and portal | Keys |
+| Payments | Stripe Checkout, customer portal, invoices, signed webhook sync | Keys |
+| Email | SMTP verification, password reset and workspace invitations, with logged dev links | Keys / optional |
+| Webhooks | HMAC-signed events, delivery log, test endpoint, SSRF guard | Ready |
 
 ## Project structure
 
@@ -66,16 +67,16 @@ backend/
                    renders/exports/jobs, publishing, analytics, ai, dashboard, live
     services/      media, transcription, highlights, content, captions, face,
                    render, publishing, analytics, ai, sources
-    models.py      26 tables
+    models.py      32 tables
     tasks.py       ingest, transcribe, analyze, render, publish, live recording
     jobs.py        inline + ARQ queue and recovery
     worker.py      ARQ worker + scheduled publishing cron
-  alembic/         initial migration
-  tests/           pytest suite (36 tests)
+  alembic/         initial migration + teams/billing/sharing migration
+  tests/           pytest suite (45 tests)
 frontend/
   app/(app)/       dashboard, videos, upload, import, live, clips, editor,
                    renders, exports, publish, accounts, analytics, ai-settings,
-                   workspace, billing, settings, docs
+                   workspace, billing, webhooks, settings, docs
   components/      UI kit, app shell, charts, timeline, clip cards
   lib/             API client, hooks, types, store, formatting
 Dockerfile         all-in-one image used by the Render blueprint

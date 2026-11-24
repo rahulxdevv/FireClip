@@ -149,9 +149,14 @@ Each stage is a real background job, not a request handler, so a long source nev
 | Publishing | YouTube, Facebook, Instagram Reels and TikTok, with scheduling and retries |
 | Analytics | Platform metric sync, plus manual numbers labelled by source |
 | Live | Record public YouTube, Twitch or Kick streams into the same pipeline |
-| Teams | Workspaces with owner/admin/editor/viewer roles, invitations, audit log |
+| Teams | Workspaces with owner/admin/editor/viewer roles, email invitations, audit log |
+| Review | Threaded clip comments with resolve state, bulk approve/reject/merge/delete |
+| Sharing | Password-protected, expiring public links for any export, with view counts |
+| Billing | Free/starter/studio/agency plans, Stripe Checkout and portal, invoices, webhook sync |
+| Email | SMTP verification, password reset and invitations; falls back to logged links when unconfigured |
+| Webhooks | HMAC-signed event delivery with retries, delivery log and test endpoint |
 
-Transcription, LLM providers and publishing need your own credentials. Payments, email notifications and stock footage are not included - the full status table is in [Architecture](docs/architecture.md#feature-status).
+Transcription, LLM providers, publishing, SMTP and payments need your own credentials. Every unconfigured provider reports that honestly instead of faking success. The full status table is in [Architecture](docs/architecture.md#feature-status).
 
 ## Configuration
 
@@ -191,13 +196,14 @@ Proxy examples, backups, scaling and an operations checklist: [Deployment](docs/
 
 ## Status
 
-The backend suite (36 tests), the TypeScript check, the production build and ESLint all run in CI on every push. Docker images, the Render blueprint and live OAuth/AI calls are not exercised there because they need a Docker host or real credentials. Known gaps: [Troubleshooting](docs/troubleshooting.md#known-limitations).
+The backend suite (45 tests), the TypeScript check, the production build and ESLint all run in CI on every push. Docker images, the Render blueprint and live OAuth/AI calls are not exercised there because they need a Docker host or real credentials. Known gaps: [Troubleshooting](docs/troubleshooting.md#known-limitations).
 
 ## Security
 
 - bcrypt password hashing, HTTP-only JWT cookies, API keys stored as hashes with a visible prefix.
 - Provider and OAuth tokens encrypted with AES-GCM derived from `JWT_SECRET`.
-- Workspace-scoped media, SSRF-guarded URL imports, audit logs and rate limits.
+- Workspace-scoped media, SSRF-guarded URL imports and webhooks, audit logs and rate limits.
+- Share links use optional bcrypt-hashed passwords, expiry, revocation and short-lived media tokens.
 - Back up `JWT_SECRET`: losing it invalidates sessions and makes encrypted tokens unrecoverable.
 
 ## License

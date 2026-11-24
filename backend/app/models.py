@@ -53,6 +53,7 @@ class User(TimestampMixin, Base):
     avatar_color: Mapped[str] = mapped_column(String(16), default="#ff6a1f")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     memberships: Mapped[list["Membership"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -69,6 +70,11 @@ class Workspace(TimestampMixin, Base):
     plan: Mapped[str] = mapped_column(String(32), default="studio")
     monthly_clip_limit: Mapped[int] = mapped_column(Integer, default=500)
     monthly_render_minutes: Mapped[int] = mapped_column(Integer, default=600)
+    plan_status: Mapped[str] = mapped_column(String(24), default="active")
+    plan_interval: Mapped[str] = mapped_column(String(12), default="month")
+    plan_renews_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(80))
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(80))
 
     memberships: Mapped[list["Membership"]] = relationship(
         back_populates="workspace", cascade="all, delete-orphan"
@@ -569,6 +575,129 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class EmailToken(Base):
+    """Single-use verification, password-reset and invitation tokens.
+
+    Only a SHA-256 hash of the token is stored. A token is bound to an email
+    address so it cannot be replayed against a different account.
+    """
+
+    __tablename__ = "email_tokens"
+    __table_args__ = (Index("ix_email_tokens_email_kind", "email", "kind"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    user_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    workspace_id: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    kind: Mapped[str] = mapped_column(String(24))  # verify | reset | invite
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(16), default="editor")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ClipComment(Base):
+    """A review comment on a candidate clip."""
+
+    __tablename__ = "clip_comments"
+    __table_args__ = (Index("ix_clip_comments_clip_created", "clip_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    clip_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("candidate_clips.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[str] = mapped_column(String(32), ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(Text)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by: Mapped[str | None] = mapped_column(String(32), ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class ShareLink(Base):
+    """Public, revocable link to an exported clip."""
+
+    __tablename__ = "share_links"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    exported_video_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("exported_videos.id", ondelete="CASCADE"), index=True
+    )
+    created_by: Mapped[str] = mapped_column(String(32), ForeignKey("users.id"))
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), default="")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class BillingInvoice(Base):
+    """A snapshot of an invoice from the payment provider."""
+
+    __tablename__ = "billing_invoices"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    )
+    provider: Mapped[str] = mapped_column(String(24), default="stripe")
+    external_id: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    number: Mapped[str] = mapped_column(String(80), default="")
+    status: Mapped[str] = mapped_column(String(24), default="open")
+    amount_cents: Mapped[int] = mapped_column(Integer, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="usd")
+    hosted_url: Mapped[str] = mapped_column(Text, default="")
+    pdf_url: Mapped[str] = mapped_column(Text, default="")
+    period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class BillingEvent(Base):
+    """Webhook idempotency ledger."""
+
+    __tablename__ = "billing_events"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    provider: Mapped[str] = mapped_column(String(24), default="stripe")
+    external_id: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(80), default="")
+    processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class WebhookDelivery(Base):
+    """Result of one outbound webhook attempt."""
+
+    __tablename__ = "webhook_deliveries"
+    __table_args__ = (Index("ix_webhook_deliveries_endpoint_created", "endpoint_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    endpoint_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("webhook_endpoints.id", ondelete="CASCADE"), index=True
+    )
+    workspace_id: Mapped[str] = mapped_column(String(32), index=True)
+    event: Mapped[str] = mapped_column(String(80), index=True)
+    status_code: Mapped[int] = mapped_column(Integer, default=0)
+    ok: Mapped[bool] = mapped_column(Boolean, default=False)
+    error: Mapped[str] = mapped_column(Text, default="")
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class WebhookEndpoint(Base):
     """Outbound notification hook (documented, optional)."""
 
@@ -580,5 +709,7 @@ class WebhookEndpoint(Base):
     )
     url: Mapped[str] = mapped_column(Text)
     secret: Mapped[str] = mapped_column(String(120), default="")
+    description: Mapped[str] = mapped_column(String(160), default="")
+    events: Mapped[list] = mapped_column(JSON, default=lambda: ["*"])
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

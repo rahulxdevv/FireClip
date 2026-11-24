@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { Flame, Search, Sparkles } from "lucide-react";
+import { Check, Flame, Merge, Search, Sparkles, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/shared";
 import { ClipCard } from "@/components/clip-card";
 import { Alert, Button, EmptyState, Input, PageSkeleton, Panel, Select, Tabs } from "@/components/ui";
 import { useApi, useDebounced } from "@/lib/hooks";
 import type { Clip, Video } from "@/lib/types";
+import { api, errorMessage } from "@/lib/api";
+import { toast } from "@/lib/stores";
 
 export default function ClipsPage() {
   const [status, setStatus] = React.useState("all");
   const [sort, setSort] = React.useState("score");
   const [videoId, setVideoId] = React.useState("");
   const [search, setSearch] = React.useState("");
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = React.useState<string | null>(null);
   const debounced = useDebounced(search, 300);
 
   const query = new URLSearchParams();
@@ -29,6 +33,46 @@ export default function ClipsPage() {
 
   const clips = data || [];
   const approved = clips.filter((clip) => clip.status === "approved").length;
+
+  React.useEffect(() => {
+    setSelected((current) => {
+      const visible = new Set(clips.map((clip) => clip.id));
+      const next = new Set([...current].filter((id) => visible.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [clips]);
+
+  function toggleSelect(clip: Clip) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(clip.id)) next.delete(clip.id);
+      else next.add(clip.id);
+      return next;
+    });
+  }
+
+  async function bulkAction(action: "approve" | "reject" | "delete" | "merge") {
+    if (selected.size === 0) return;
+    if (action === "delete" && !window.confirm("Delete " + selected.size + " clips? This cannot be undone.")) return;
+    if (action === "merge" && selected.size < 2) {
+      toast("Select at least two clips to merge", "error");
+      return;
+    }
+    setBulkBusy(action);
+    try {
+      await api.post("/api/clips/bulk", { action, clip_ids: [...selected] });
+      toast(
+        action === "merge" ? "Clips merged" : action === "delete" ? "Clips deleted" : "Clips " + action + "d",
+        "success",
+      );
+      setSelected(new Set());
+      refresh();
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setBulkBusy(null);
+    }
+  }
   const avgScore = clips.length
     ? Math.round(clips.reduce((sum, clip) => sum + clip.virality_score, 0) / clips.length)
     : 0;
@@ -40,11 +84,21 @@ export default function ClipsPage() {
         title="Clip discovery"
         description="Review every candidate the analysis found across this workspace. Approve what earns a render, reject what does not."
         actions={
-          <Link href="/videos">
-            <Button size="sm">
-              <Sparkles className="h-3.5 w-3.5" /> Find more clips
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelected(new Set(clips.map((clip) => clip.id)))}
+              disabled={clips.length === 0}
+            >
+              Select all
             </Button>
-          </Link>
+            <Link href="/videos">
+              <Button size="sm">
+                <Sparkles className="h-3.5 w-3.5" /> Find more clips
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -103,6 +157,43 @@ export default function ClipsPage() {
 
       {error ? <Alert className="mb-4">{error}</Alert> : null}
 
+      {selected.size > 0 ? (
+        <Panel className="mb-4 flex flex-wrap items-center gap-2 px-3 py-2.5">
+          <span className="mr-2 text-[12px] text-muted">
+            <span className="font-mono text-paper">{selected.size}</span> selected
+          </span>
+          <Button size="sm" variant="ghost" loading={bulkBusy === "approve"} onClick={() => bulkAction("approve")}>
+            <Check className="h-3 w-3" /> Approve
+          </Button>
+          <Button size="sm" variant="ghost" loading={bulkBusy === "reject"} onClick={() => bulkAction("reject")}>
+            <X className="h-3 w-3" /> Reject
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={bulkBusy === "merge"}
+            disabled={selected.size < 2}
+            onClick={() => bulkAction("merge")}
+          >
+            <Merge className="h-3 w-3" /> Merge
+          </Button>
+          <Button size="sm" variant="danger" loading={bulkBusy === "delete"} onClick={() => bulkAction("delete")}>
+            <Trash2 className="h-3 w-3" /> Delete
+          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setSelected(new Set(clips.map((clip) => clip.id)))}
+              className="text-[11px] text-faint hover:text-paper"
+            >
+              Select all
+            </button>
+            <button onClick={() => setSelected(new Set())} className="text-[11px] text-faint hover:text-paper">
+              Clear
+            </button>
+          </div>
+        </Panel>
+      ) : null}
+
       {loading && !data ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -125,7 +216,13 @@ export default function ClipsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {clips.map((clip) => (
-            <ClipCard key={clip.id} clip={clip} onChanged={refresh} />
+            <ClipCard
+              key={clip.id}
+              clip={clip}
+              onChanged={refresh}
+              selected={selected.has(clip.id)}
+              onToggleSelect={toggleSelect}
+            />
           ))}
         </div>
       )}

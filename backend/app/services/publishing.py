@@ -23,6 +23,7 @@ from ..config import settings
 from ..models import AnalyticsRecord, ExportedVideo, PublishingJob, SocialAccount
 from ..security import create_token, decrypt_secret, decode_token, encrypt_secret
 from ..storage import get_storage
+from .webhooks import emit as emit_webhook
 
 logger = logging.getLogger("fireclip.publishing")
 
@@ -596,6 +597,17 @@ def execute_publish(job_id: str) -> dict:
                 db, "publish.completed", workspace_id=workspace_id, user_id=created_by,
                 target_type="publishing_job", target_id=job_id_value,
                 meta={"platform": platform, "post_id": result.get("external_post_id")},
+            )
+            emit_webhook(
+                db,
+                workspace_id,
+                "clip.published",
+                {
+                    "publishing_job_id": job_id_value,
+                    "platform": platform,
+                    "external_url": job.external_url,
+                    "external_post_id": job.external_post_id,
+                },
             )
         return {"status": "published", **result}
     except Exception as exc:

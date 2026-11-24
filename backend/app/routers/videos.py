@@ -49,7 +49,7 @@ from ..schemas import (
     VideoOut,
     VideoUpdate,
 )
-from ..services import sources as source_service
+from ..services import billing, sources as source_service
 from ..storage import build_key, get_storage, safe_filename
 from .common import clip_out, get_clip, get_video, video_detail, video_out
 from .media_utils import serve_key
@@ -531,6 +531,14 @@ def create_manual_clip(video_id: str, payload: ClipCreate, ctx: RequestContext =
         raise HTTPException(status_code=400, detail="Clip range is outside the video")
     if payload.end_ms - payload.start_ms < 1000:
         raise HTTPException(status_code=400, detail="Clip must be at least 1 second long")
+    if billing.clips_used_this_month(ctx.db, ctx.workspace.id) >= ctx.workspace.monthly_clip_limit:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Monthly clip limit reached ({ctx.workspace.monthly_clip_limit}). "
+                "Upgrade the workspace plan or wait until next month."
+            ),
+        )
     transcript_text = ""
     transcript = ctx.db.scalar(
         select(Transcript).where(Transcript.video_id == video.id, Transcript.status == "completed")

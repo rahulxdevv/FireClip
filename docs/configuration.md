@@ -41,6 +41,12 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `MAX_UPLOAD_MB` | `4096` | Enforced by the API; match your proxy body limit. |
 | `PLAN_CLIP_LIMIT` | `500` | Default monthly clip allowance for new workspaces. |
 | `PLAN_RENDER_MINUTES` | `600` | Default monthly render-minute allowance. |
+| `REQUIRE_EMAIL_VERIFICATION` | `false` | Block sign-in until the email link is confirmed. Requires SMTP. |
+| `SMTP_HOST`, `SMTP_PORT` | empty, `587` | Transactional email for verification, reset and invitations. |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | empty | SMTP credentials; STARTTLS or implicit SSL is supported. |
+| `MAIL_FROM`, `MAIL_FROM_NAME` | `no-reply@fireclip.local`, `FireClip` | Sender identity on outgoing mail. |
+| `STRIPE_SECRET_KEY` | empty | Enables Checkout and the customer portal. |
+| `STRIPE_WEBHOOK_SECRET` | empty | Required to verify subscription and invoice webhooks. |
 | `ALLOW_MOCK_TRANSCRIPTION` | `false` | Tests/demos only. Mock output is labelled in the UI. |
 | `API_HOST` | `127.0.0.1` | Local API bind address. Use `0.0.0.0` only when exposing it directly. |
 | `API_PORT` | `8000` | API port for the local runner and, in Compose, both the container and the host binding. |
@@ -54,7 +60,15 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `RENDER_X264_PRESET` | `veryfast` | `ultrafast` or `superfast` for slower hardware. |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`. |
 
-OAuth, S3, AI and watermark options are documented inline in `.env.example`.
+OAuth, S3, AI and watermark options are documented inline in [`.env.example`](../.env.example).
+
+### Email, sharing and billing
+
+- **Email is optional.** With no SMTP host, verification, reset and invitation links are written to the backend log in debug mode. The API reports `sent: false` and never pretends a message was delivered. Set `SMTP_HOST` and `MAIL_FROM` to send real mail.
+- **Verification is opt-in.** `REQUIRE_EMAIL_VERIFICATION=true` rejects password login until the address is confirmed. Accounts created while it is off remain usable; they can confirm later from **My settings**.
+- **Share links are self-contained.** A link can carry a bcrypt-hashed password and an expiry. Public media is served through short-lived signed URLs; private workspace media is never exposed without a valid link token.
+- **Payments are optional.** Checkout appears only when `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and the matching price ID are set; checkout stays disabled without a webhook secret so a payment can always be fulfilled. Point a Stripe webhook at `{BACKEND_PUBLIC_URL}/api/billing/webhook`. Without Stripe, plan limits and usage metering still work.
+- **Webhooks are signed.** Each endpoint gets its own secret. Verify `X-FireClip-Signature` as HMAC-SHA256 over the raw body. Private and loopback URLs are rejected.
 
 ## Ports by deployment type
 

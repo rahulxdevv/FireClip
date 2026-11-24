@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { ArrowRight, Flame, Loader2 } from "lucide-react";
+import { ArrowRight, Flame, MailCheck } from "lucide-react";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { api, errorMessage } from "@/lib/api";
@@ -76,6 +76,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const setSession = useSessionStore((state) => state.setSession);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [verification, setVerification] = React.useState<{
+    email: string;
+    sent: boolean;
+    link: string | null;
+  } | null>(null);
   const [form, setForm] = React.useState({
     email: "",
     password: "",
@@ -95,7 +100,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     try {
       const session =
         mode === "register"
-          ? await api.post<Session>("/api/auth/register", {
+          ? await api.post<Session & {
+              verification_required?: boolean;
+              verification_email_sent?: boolean;
+              verification_link?: string | null;
+            }>("/api/auth/register", {
               email: form.email,
               password: form.password,
               name: form.name,
@@ -105,6 +114,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               email: form.email,
               password: form.password,
             });
+      const result = session as Session & {
+        verification_required?: boolean;
+        verification_email_sent?: boolean;
+        verification_link?: string | null;
+      };
+      if (mode === "register" && result.verification_required) {
+        setVerification({
+          email: form.email,
+          sent: Boolean(result.verification_email_sent),
+          link: result.verification_link || null,
+        });
+        return;
+      }
       setSession(session);
       router.replace("/dashboard");
     } catch (err) {
@@ -112,6 +134,37 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (verification) {
+    return (
+      <div className="space-y-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-flame-500/10 text-flame-500">
+          <MailCheck className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-[15px] font-medium">Check your email</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+            {verification.sent
+              ? "We sent a confirmation link to " + verification.email + ". Open it, then sign in."
+              : "Email delivery is not configured on this instance. Use the development link below to confirm " + verification.email + "."}
+          </p>
+        </div>
+        {verification.link ? (
+          <a
+            href={verification.link}
+            className="block break-all rounded-lg border border-flame-500/30 bg-ink-850 px-3 py-2 font-mono text-[11px] text-flame-400 hover:text-flame-500"
+          >
+            {verification.link}
+          </a>
+        ) : null}
+        <Link href="/login" className="block">
+          <Button className="w-full" size="lg">
+            Back to sign in <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -151,6 +204,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           autoComplete={mode === "register" ? "new-password" : "current-password"}
         />
       </Field>
+      {mode === "login" ? (
+        <div className="flex justify-end">
+          <Link href="/forgot-password" className="text-[11.5px] text-faint hover:text-flame-400">
+            Forgot password?
+          </Link>
+        </div>
+      ) : null}
       {mode === "register" ? (
         <Field label="Workspace name" hint="You can invite teammates later.">
           <Input

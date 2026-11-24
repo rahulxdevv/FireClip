@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { KeyRound, ShieldCheck, UserRound } from "lucide-react";
+import { KeyRound, MailCheck, ShieldCheck, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/shared";
-import { Alert, Button, Field, Input, Panel, PanelHeader } from "@/components/ui";
+import { Alert, Badge, Button, Field, Input, Panel, PanelHeader } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { toast, useSessionStore } from "@/lib/stores";
 import { formatDateTime } from "@/lib/format";
@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const [passwords, setPasswords] = React.useState({ current_password: "", new_password: "", confirm: "" });
   const [savingPassword, setSavingPassword] = React.useState(false);
   const [passwordError, setPasswordError] = React.useState<string | null>(null);
+  const [resending, setResending] = React.useState(false);
+  const [verifyLink, setVerifyLink] = React.useState<string | null>(null);
 
   React.useEffect(() => setName(user?.name || ""), [user?.name]);
 
@@ -36,6 +38,29 @@ export default function SettingsPage() {
       toast(errorMessage(err), "error");
     } finally {
       setSavingName(false);
+    }
+  }
+
+  async function resendVerification() {
+    setResending(true);
+    setVerifyLink(null);
+    try {
+      const result = await api.post<{ sent: boolean; configured: boolean; dev_link: string | null }>(
+        "/api/auth/resend-verification",
+      );
+      if (result.dev_link) setVerifyLink(result.dev_link);
+      toast(
+        result.sent
+          ? "Verification email sent"
+          : result.configured
+            ? "Email provider accepted the request"
+            : "Email is not configured on this instance",
+        result.sent ? "success" : "info",
+      );
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -88,9 +113,44 @@ export default function SettingsPage() {
             <Field label="Name">
               <Input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} />
             </Field>
-            <Field label="Email" hint="Email changes require a verification flow that is not enabled in this build.">
+            <Field label="Email" hint="Contact the operator if you need to change the address on this account.">
               <Input value={user?.email || ""} disabled />
             </Field>
+            <div className="rounded-lg border border-white/8 bg-ink-850/50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <MailCheck className="h-4 w-4 text-faint" />
+                  {user?.email_verified_at ? (
+                    <span className="text-muted">
+                      Email confirmed {formatDateTime(user.email_verified_at)}
+                    </span>
+                  ) : (
+                    <span className="text-muted">Email not confirmed yet</span>
+                  )}
+                </div>
+                {user?.email_verified_at ? (
+                  <Badge tone="mint">verified</Badge>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    loading={resending}
+                    onClick={resendVerification}
+                  >
+                    Resend link
+                  </Button>
+                )}
+              </div>
+              {verifyLink ? (
+                <p className="mt-2 break-all font-mono text-[10px] text-faint">
+                  Development link:{" "}
+                  <a href={verifyLink} className="text-flame-400 hover:text-flame-500">
+                    {verifyLink}
+                  </a>
+                </p>
+              ) : null}
+            </div>
             <Button type="submit" loading={savingName} disabled={!name.trim() || name === user?.name}>
               Save profile
             </Button>

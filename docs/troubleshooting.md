@@ -21,7 +21,8 @@
 - Diarization is approximate unless pyannote is installed; it is labelled.
 - TikTok posting is gated by app approval; metrics need additional scopes.
 - Instagram Reels need a public HTTPS media URL.
-- No payments, email verification, password reset or notification emails.
+- Email, Stripe and social posting require your own provider credentials; unconfigured features report that state instead of faking success.
+- Share links protect media with passwords and expiry, but anyone with a valid link can view it until it expires or is revoked.
 - Local speech recognition needs Python 3.10-3.12; Python 3.13+ cannot install PyAV.
 - Render free plan sleeps, has 512 MB RAM and ephemeral media.
 
@@ -31,9 +32,9 @@ Checked in the development environment on **2026-11-15**:
 
 | Check | Result |
 | --- | --- |
-| Backend test suite | **36 passed** |
-| TypeScript + production build | **Passed**, 22 routes |
-| ESLint | **0 errors**, 48 warnings (React hook rules tracked as warnings) |
+| Backend test suite | **45 passed** |
+| TypeScript + production build | **Passed**, 28 app routes |
+| ESLint | **0 errors** (React hook and unused-import warnings tracked) |
 | Fresh Alembic migration | Applied; `alembic check` clean |
 | API contract sweep | All page-used endpoints returned expected shapes |
 | Production Next proxy | Registration and cookie auth work; multipart upload returns 201 |

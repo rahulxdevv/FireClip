@@ -13,6 +13,7 @@ const SECTIONS = [
   { id: "transcription", label: "Transcription" },
   { id: "rendering", label: "Rendering & captions" },
   { id: "publishing", label: "Publishing" },
+  { id: "teams", label: "Teams & billing" },
   { id: "api", label: "REST API" },
   { id: "limits", label: "Known limitations" },
   { id: "troubleshooting", label: "Troubleshooting" },
@@ -170,6 +171,20 @@ OLLAMA_MODEL=llama3.1`}</CodeBlock>
             </ul>
           </Doc>
 
+          <Doc id="teams" title="Teams, email & billing">
+            <p>
+              Workspaces support owner, admin, editor and viewer roles. Adding an email that already has an account
+              creates a membership immediately; a new address gets a single-use invitation link. Reviewers can leave
+              threaded comments on clips, resolve them, and act on many clips at once.
+            </p>
+            <ul className="mt-3 list-disc space-y-1.5 pl-4">
+              <li>Exports can be shared through public links with an optional password and expiry. Revoke a link at any time.</li>
+              <li>SMTP powers verification, password reset and invitations. Without it, debug installs log the link and the API reports that delivery did not happen.</li>
+              <li>Stripe Checkout and the customer portal appear only when the secret key and matching price IDs are configured. Invoices and plan changes sync through a signed webhook.</li>
+              <li>Outbound webhooks are HMAC-SHA256 signed and recorded in a delivery log. Private and loopback URLs are rejected.</li>
+            </ul>
+          </Doc>
+
           <Doc id="api" title="REST API">
             <p>
               All endpoints live under <code className="doc-code">/api</code> and are documented in the OpenAPI
@@ -194,8 +209,8 @@ curl -X POST https://your-host/api/videos/upload \\
                 "No stock B-roll or music library: FireClip does not fabricate assets or licensing.",
                 "Smart crop is a static face anchor, not per-frame speaker tracking.",
                 "Diarization without pyannote is a pause-based estimate and is labelled as such.",
-                "No payment provider is connected; plan limits exist but there is no checkout.",
-                "Email verification, password reset and email notifications are not implemented.",
+                "Payments, email delivery and social posting need your own provider credentials; unconfigured features report that state instead of faking success.",
+                "A share link is a bearer credential until it expires or is revoked; use a password for sensitive cuts.",
                 "Speech recognition is unavailable in a Python 3.15 local environment with these wheels; use Docker or hosted Whisper.",
               ].map((item) => (
                 <p key={item} className="flex gap-2">

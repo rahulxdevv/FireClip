@@ -11,8 +11,10 @@ import {
   Layers,
   Play,
   Server,
+  Share2,
   Sparkles,
-  UploadCloud,
+  Users,
+  Webhook,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button, ScoreRing } from "@/components/ui";
@@ -96,6 +98,21 @@ const features = [
     icon: Film,
     title: "Provider-agnostic AI",
     body: "OpenAI, Anthropic, Gemini, Ollama, or the built-in signal engine. Keys are encrypted and never reach the browser.",
+  },
+  {
+    icon: Users,
+    title: "Review without spreadsheets",
+    body: "Invite owners, admins, editors and viewers. Leave comments on a clip, resolve feedback and approve or reject batches in one action.",
+  },
+  {
+    icon: Share2,
+    title: "Client-ready links",
+    body: "Share an export with a password and expiry, revoke it at any time, and keep the player on your own domain with no third-party embeds.",
+  },
+  {
+    icon: Webhook,
+    title: "Plans, email and hooks",
+    body: "SMTP for verification and invites, Stripe checkout and invoices when configured, plus HMAC-signed webhooks with a delivery log.",
   },
 ];
 

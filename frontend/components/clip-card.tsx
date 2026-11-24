@@ -2,23 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { Check, ChevronDown, Copy, Pencil, Sparkles, X } from "lucide-react";
-import { Badge, Button, Dialog, ScoreRing, Skeleton } from "@/components/ui";
+import { Check, ChevronDown, Copy, MessageSquare, Pencil, Sparkles, X } from "lucide-react";
+import { Badge, Button, Dialog, ScoreRing, Skeleton, Textarea } from "@/components/ui";
 import { SignalBars } from "@/components/charts";
 import { api, errorMessage } from "@/lib/api";
-import { formatDuration, formatTimecode } from "@/lib/format";
+import { formatDuration, formatTimecode, relativeTime } from "@/lib/format";
 import { toast } from "@/lib/stores";
-import type { Clip, ClipContent } from "@/lib/types";
+import type { Clip, ClipComment, ClipContent } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 export function ClipCard({
   clip,
   onChanged,
   compact = false,
+  selected = false,
+  onToggleSelect,
 }: {
   clip: Clip;
   onChanged?: () => void;
   compact?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (clip: Clip) => void;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = React.useState(false);
@@ -27,6 +31,72 @@ export function ClipCard({
   const [content, setContent] = React.useState<ClipContent | null>(null);
   const [contentError, setContentError] = React.useState<string | null>(null);
   const [loadingContent, setLoadingContent] = React.useState(false);
+  const [comments, setComments] = React.useState<ClipComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = React.useState(false);
+  const [commentText, setCommentText] = React.useState("");
+  const [commentBusy, setCommentBusy] = React.useState<string | null>(null);
+
+  const loadComments = React.useCallback(async () => {
+    setCommentsLoading(true);
+    try {
+      const rows = await api.get<ClipComment[]>(`/api/clips/${clip.id}/comments`);
+      setComments(rows);
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [clip.id]);
+
+  React.useEffect(() => {
+    if (expanded) void loadComments();
+  }, [expanded, loadComments]);
+
+  async function submitComment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!commentText.trim()) return;
+    setCommentBusy("create");
+    try {
+      const created = await api.post<ClipComment>(`/api/clips/${clip.id}/comments`, { body: commentText.trim() });
+      setComments((current) => [...current, created]);
+      setCommentText("");
+      toast("Comment added", "success");
+      onChanged?.();
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setCommentBusy(null);
+    }
+  }
+
+  async function toggleResolved(comment: ClipComment) {
+    setCommentBusy(comment.id);
+    try {
+      const updated = await api.patch<ClipComment>(`/api/clips/${clip.id}/comments/${comment.id}`, {
+        resolved: !comment.resolved_at,
+      });
+      setComments((current) => current.map((item) => (item.id === comment.id ? updated : item)));
+      onChanged?.();
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setCommentBusy(null);
+    }
+  }
+
+  async function removeComment(comment: ClipComment) {
+    if (!window.confirm("Delete this comment?")) return;
+    setCommentBusy(comment.id);
+    try {
+      await api.delete(`/api/clips/${clip.id}/comments/${comment.id}`);
+      setComments((current) => current.filter((item) => item.id !== comment.id));
+      onChanged?.();
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setCommentBusy(null);
+    }
+  }
 
   const topSignals = Object.entries(clip.signals || {})
     .sort((a, b) => b[1] - a[1])
@@ -75,6 +145,15 @@ export function ClipCard({
     <div className="overflow-hidden rounded-xl border border-white/8 bg-ink-900">
       <div className={cn("p-4", compact && "p-3.5")}>
         <div className="flex items-start gap-3">
+          {onToggleSelect ? (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(clip)}
+              aria-label={"Select " + clip.title}
+              className="mt-1 h-3.5 w-3.5 shrink-0 accent-flame-500"
+            />
+          ) : null}
           <ScoreRing score={clip.virality_score} size={compact ? 38 : 44} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
@@ -141,6 +220,18 @@ export function ClipCard({
           <Button size="sm" variant="ghost" onClick={openContent}>
             <Sparkles className="h-3 w-3" /> Social copy
           </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            <MessageSquare className="h-3 w-3" /> Comments
+            {(clip.comment_count || 0) > 0 ? (
+              <span className="ml-0.5 rounded bg-white/8 px-1 font-mono text-[9.5px]">
+                {clip.comment_count}
+              </span>
+            ) : null}
+          </Button>
           <button
             onClick={() => setExpanded((value) => !value)}
             className="ml-auto flex items-center gap-1 rounded px-1.5 py-1 text-[11px] text-faint hover:text-paper"
@@ -169,6 +260,78 @@ export function ClipCard({
               <p className="text-[12px] text-paper">{clip.hook}</p>
             </div>
           ) : null}
+
+          <div className="border-t border-white/7 pt-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="label-caps">Review comments</p>
+              {(clip.open_comment_count || 0) > 0 ? (
+                <Badge tone="ember">{clip.open_comment_count} open</Badge>
+              ) : null}
+            </div>
+            {commentsLoading && comments.length === 0 ? (
+              <Skeleton className="h-12" />
+            ) : comments.length === 0 ? (
+              <p className="rounded-lg border border-white/8 bg-ink-900/60 px-3 py-3 text-[11.5px] text-faint">
+                No comments yet. Leave timing or copy feedback for your team.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className={
+                      "rounded-lg border px-3 py-2.5 " +
+                      (comment.resolved_at ? "border-white/6 bg-ink-900/40 opacity-65" : "border-white/8 bg-ink-900/70")
+                    }
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded bg-flame-500/12 font-mono text-[9px] text-flame-400">
+                        {(comment.author_name || comment.author_email).slice(0, 2).toUpperCase()}
+                      </span>
+                      <span className="text-[11px] font-medium text-paper">
+                        {comment.author_name || comment.author_email}
+                      </span>
+                      <span className="font-mono text-[9.5px] text-faint">{relativeTime(comment.created_at)}</span>
+                      {comment.resolved_at ? <Badge tone="mint">resolved</Badge> : null}
+                      <div className="ml-auto flex items-center gap-1">
+                        <button
+                          onClick={() => toggleResolved(comment)}
+                          disabled={commentBusy === comment.id}
+                          className="rounded px-1.5 py-0.5 text-[10px] text-faint hover:bg-white/5 hover:text-paper disabled:opacity-40"
+                        >
+                          {comment.resolved_at ? "Reopen" : "Resolve"}
+                        </button>
+                        {comment.mine ? (
+                          <button
+                            onClick={() => removeComment(comment)}
+                            disabled={commentBusy === comment.id}
+                            className="rounded px-1.5 py-0.5 text-[10px] text-faint hover:bg-white/5 hover:text-rose disabled:opacity-40"
+                          >
+                            Delete
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    <p className="mt-1.5 whitespace-pre-wrap text-[11.5px] leading-relaxed text-muted">{comment.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <form onSubmit={submitComment} className="mt-2.5 space-y-2">
+              <Textarea
+                value={commentText}
+                onChange={(event) => setCommentText(event.target.value)}
+                placeholder="Leave feedback for the editor…"
+                className="min-h-16 text-[12px]"
+                maxLength={2000}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" type="submit" loading={commentBusy === "create"} disabled={!commentText.trim()}>
+                  Comment
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : null}
 
