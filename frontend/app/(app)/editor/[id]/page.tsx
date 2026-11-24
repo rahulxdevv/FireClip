@@ -5,9 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
 import {
   ArrowLeft,
-  Captions,
   Check,
-  Crop,
   Download,
   Image as ImageIcon,
   Layers,
@@ -68,11 +66,21 @@ interface Draft {
   caption_style_id: string | null;
   captions_enabled: boolean;
   caption_overrides: Record<string, unknown>;
+  caption_translation: EditorProject["caption_translation"];
+  layout: NonNullable<EditorProject["layout"]>;
   overlays: Overlay[];
   music: { asset_key?: string; volume?: number; name?: string } | null;
   audio: AudioDraft;
   operations: unknown[];
 }
+
+const TRANSLATION_LANGUAGES = [
+  ["en", "English"], ["es", "Spanish"], ["fr", "French"], ["de", "German"],
+  ["pt", "Portuguese"], ["it", "Italian"], ["nl", "Dutch"], ["hi", "Hindi"],
+  ["ur", "Urdu"], ["bn", "Bengali"], ["ar", "Arabic"], ["tr", "Turkish"],
+  ["id", "Indonesian"], ["ja", "Japanese"], ["ko", "Korean"], ["zh", "Chinese (Simplified)"],
+  ["ru", "Russian"], ["vi", "Vietnamese"], ["th", "Thai"], ["pl", "Polish"],
+];
 
 const PRESETS = [
   { id: "tiktok", label: "TikTok", size: "1080×1920", aspect: "9:16" },
@@ -96,6 +104,15 @@ function toDraft(project: EditorProject): Draft {
     caption_style_id: project.caption_style_id,
     captions_enabled: project.captions_enabled,
     caption_overrides: { ...(project.caption_overrides || {}) },
+    caption_translation: { ...(project.caption_translation || {}) },
+    layout: {
+      mode: "fill",
+      position: "bottom_right",
+      size: 0.4,
+      x: 0.96,
+      y: 0.96,
+      ...(project.layout || {}),
+    },
     overlays: (project.overlays || []).map((overlay) => ({ ...overlay })),
     music: project.music ? { ...project.music } : null,
     audio: { ...(project.audio || {}) },
@@ -131,6 +148,8 @@ export default function EditorPage() {
   const [templateOpen, setTemplateOpen] = React.useState(false);
   const [templateName, setTemplateName] = React.useState("");
   const [savingTemplate, setSavingTemplate] = React.useState(false);
+  const [translationLanguage, setTranslationLanguage] = React.useState("en");
+  const [translating, setTranslating] = React.useState(false);
 
   const history = React.useRef<Draft[]>([]);
   const future = React.useRef<Draft[]>([]);
@@ -260,11 +279,17 @@ export default function EditorPage() {
   const segments = (project.transcript?.segments || []).filter(
     (segment: Segment) => segment.end_ms > draft.trim_start_ms && segment.start_ms < draft.trim_end_ms,
   );
+  const translatedSegments = (draft.caption_translation.segments || []).map((segment, index) => ({
+    id: `translated-${index}`,
+    start_ms: segment.start_ms,
+    end_ms: segment.end_ms,
+    text: segment.text,
+    speaker_id: null,
+    confidence: 1,
+    words: [],
+  }));
+  const captionSegments = translatedSegments.length ? translatedSegments : segments;
   const overrides = draft.caption_overrides as Record<string, string | number | boolean>;
-  const override = <T,>(key: string, fallback: T): T =>
-    (overrides[key] as T | undefined) ?? fallback;
-  const imageOverlays = draft.overlays.filter((overlay) => overlay.type === "image");
-  const textOverlays = draft.overlays.filter((overlay) => overlay.type === "text");
   const durationSeconds = Math.max(0.5, (draft.trim_end_ms - draft.trim_start_ms) / 1000);
   const siblingClips = (siblings.data || []).filter((clip) => clip.id !== project.clip_id);
 
@@ -304,15 +329,64 @@ export default function EditorPage() {
   async function detectFace() {
     setFocusBusy(true);
     try {
-      const result = await api.post<{ focus_x: number; focus_y: number; faces_detected: number }>(
-        `/api/editors/${id}/auto-focus`,
-      );
-      apply({ focus_x: result.focus_x, focus_y: result.focus_y });
+      const result = await api.post<{
+        focus_x: number;
+        focus_y: number;
+        camera_x: number;
+        camera_y: number;
+        camera_w: number;
+        camera_h: number;
+        faces_detected: number;
+      }>(`/api/editors/${id}/auto-focus`);
+      apply({
+        focus_x: result.focus_x,
+        focus_y: result.focus_y,
+        layout: {
+          ...draft.layout,
+          camera_x: result.camera_x,
+          camera_y: result.camera_y,
+          camera_w: result.camera_w,
+          camera_h: result.camera_h,
+        },
+      });
       toast("Subject framed", "success", `${result.faces_detected} face detections used.`);
     } catch (err) {
       toast(errorMessage(err), "error");
     } finally {
       setFocusBusy(false);
+    }
+  }
+
+  async function translateCaptions() {
+    setTranslating(true);
+    try {
+      const result = await api.post<EditorProject["caption_translation"]>(
+        `/api/editors/${id}/translate-captions`,
+        { language: translationLanguage },
+      );
+      apply({ caption_translation: result });
+      toast(
+        `Captions translated to ${result.language_name || translationLanguage}`,
+        "success",
+        "Render again to burn the translated captions into the clip.",
+      );
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setTranslating(false);
+    }
+  }
+
+  async function clearTranslation() {
+    setTranslating(true);
+    try {
+      await api.delete(`/api/editors/${id}/translate-captions`);
+      apply({ caption_translation: {} });
+      toast("Translated captions cleared", "info");
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setTranslating(false);
     }
   }
 
@@ -414,6 +488,11 @@ export default function EditorPage() {
     boxOpacity: Number(overrides.box_opacity ?? activeConfig.box_opacity ?? 0.28),
     italic: Boolean(overrides.italic ?? activeConfig.italic ?? false),
     letterSpacing: Number(overrides.letter_spacing ?? activeConfig.letter_spacing ?? 0),
+    heading: String(overrides.heading || activeConfig.heading || ""),
+    headingEnabled: Boolean(overrides.heading_enabled ?? activeConfig.heading_enabled ?? true),
+    headingColor: String(overrides.heading_color || activeConfig.heading_color || "#ffffff"),
+    headingSize: Number(overrides.heading_size || activeConfig.heading_size || 54),
+    headingUppercase: Boolean(overrides.heading_uppercase ?? activeConfig.heading_uppercase ?? false),
   };
 
   async function saveTemplate() {
@@ -511,7 +590,7 @@ export default function EditorPage() {
                 trimStartMs={draft.trim_start_ms}
                 trimEndMs={draft.trim_end_ms}
                 aspect={draft.aspect_ratio}
-                captions={segments}
+                captions={captionSegments}
                 captionStyle={captionPreview}
                 onTimeUpdate={(ms) => setPlayhead(ms)}
               />
@@ -526,6 +605,7 @@ export default function EditorPage() {
                 aspect={draft.aspect_ratio}
                 focusX={draft.focus_x}
                 focusY={draft.focus_y}
+                layout={draft.layout}
               />
               <p className="font-mono text-[9.5px] leading-relaxed text-faint">
                 crop {draft.width}×{draft.height}
@@ -643,6 +723,108 @@ export default function EditorPage() {
                     </Field>
                   </div>
                 ) : null}
+                <div className="space-y-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                  <Field label="Layout">
+                    <Select
+                      value={draft.layout.mode || "fill"}
+                      onChange={(event) =>
+                        apply({ layout: { ...draft.layout, mode: event.target.value as "fill" | "fit" | "facecam" } })
+                      }
+                    >
+                      <option value="fill">Fill the screen</option>
+                      <option value="fit">Fit with blurred background</option>
+                      <option value="facecam">Face cam over gameplay</option>
+                    </Select>
+                  </Field>
+                  {draft.layout.mode === "facecam" ? (
+                    <>
+                      <Field label="Camera position">
+                        <Select
+                          value={draft.layout.position || "bottom_right"}
+                          onChange={(event) => apply({ layout: { ...draft.layout, position: event.target.value } })}
+                        >
+                          <option value="bottom_right">Bottom right</option>
+                          <option value="bottom_left">Bottom left</option>
+                          <option value="bottom_center">Bottom center</option>
+                          <option value="bottom_half">Bottom half</option>
+                          <option value="top_right">Top right</option>
+                          <option value="top_left">Top left</option>
+                          <option value="manual">Manual position</option>
+                        </Select>
+                      </Field>
+                      <label className="flex items-center gap-2 text-[11px] text-faint">
+                        <span className="w-14">Size</span>
+                        <input
+                          type="range"
+                          min={0.15}
+                          max={0.8}
+                          step={0.01}
+                          value={draft.layout.size ?? 0.4}
+                          onChange={(event) => apply({ layout: { ...draft.layout, size: Number(event.target.value) } })}
+                          className="flex-1"
+                        />
+                        <span className="w-8 text-right font-mono">{Math.round((draft.layout.size ?? 0.4) * 100)}%</span>
+                      </label>
+                      {draft.layout.position === "manual" ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="flex items-center gap-2 text-[11px] text-faint">
+                            <span>X</span>
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={draft.layout.x ?? 0.96}
+                              onChange={(event) => apply({ layout: { ...draft.layout, x: Number(event.target.value) } })}
+                              className="flex-1"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2 text-[11px] text-faint">
+                            <span>Y</span>
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={draft.layout.y ?? 0.96}
+                              onChange={(event) => apply({ layout: { ...draft.layout, y: Number(event.target.value) } })}
+                              className="flex-1"
+                            />
+                          </label>
+                        </div>
+                      ) : null}
+                      <div className="grid grid-cols-2 gap-2">
+                        {([
+                          ["camera_x", "Source X"],
+                          ["camera_y", "Source Y"],
+                          ["camera_w", "Source W"],
+                          ["camera_h", "Source H"],
+                        ] as const).map(([key, label]) => (
+                          <label key={key} className="flex items-center gap-2 text-[10.5px] text-faint">
+                            <span className="w-14">{label}</span>
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.01}
+                              value={draft.layout[key] ?? (key.startsWith("camera_w") || key.startsWith("camera_h") ? 0.4 : 0.6)}
+                              onChange={(event) => apply({ layout: { ...draft.layout, [key]: Number(event.target.value) } })}
+                              className="flex-1"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-[10px] leading-relaxed text-faint">
+                        The source crop is where the face cam is taken from. Detect subject fills it automatically.
+                      </p>
+                    </>
+                  ) : null}
+                  {draft.layout.mode === "fit" ? (
+                    <p className="text-[10px] leading-relaxed text-faint">
+                      The whole frame stays visible, with a blurred fill behind it.
+                    </p>
+                  ) : null}
+                </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-[12px] font-medium text-muted">Subject framing</p>
@@ -715,6 +897,34 @@ export default function EditorPage() {
                   onCheckedChange={(value) => apply({ captions_enabled: value })}
                   label="Burn captions into the video"
                 />
+                <div>
+                  <p className="mb-2 text-[11px] font-medium text-muted">Creator presets</p>
+                  <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-1">
+                    {(styles.data || []).map((style) => {
+                      const config = style.config as Record<string, unknown>;
+                      const active = draft.caption_style_id === style.id;
+                      return (
+                        <button
+                          key={style.id}
+                          type="button"
+                          onClick={() => apply({ caption_style_id: style.id, caption_overrides: {} })}
+                          className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-[10.5px] ${
+                            active ? "border-flame-500/40 bg-flame-500/8 text-paper" : "border-white/8 text-muted hover:border-white/16"
+                          }`}
+                        >
+                          <span
+                            className="h-5 w-5 shrink-0 rounded-sm border border-white/20"
+                            style={{ background: String(config.box_color || "#0b0b0f"), color: String(config.highlight_color || "#ff6a1f") }}
+                          >
+                            <span className="flex h-full items-center justify-center text-[8px] font-bold" style={{ color: String(config.highlight_color || "#ff6a1f") }}>Aa</span>
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">{style.name}</span>
+                          {style.is_builtin ? <span className="text-[8px] uppercase text-faint">preset</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <Field label="Template">
                   <Select
                     value={draft.caption_style_id || ""}
@@ -730,6 +940,74 @@ export default function EditorPage() {
                     ))}
                   </Select>
                 </Field>
+                <div className="space-y-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11.5px] font-medium">Translated captions</p>
+                    {draft.caption_translation.language ? (
+                      <Badge tone="mint">{draft.caption_translation.language_name || draft.caption_translation.language}</Badge>
+                    ) : (
+                      <Badge tone="neutral">original</Badge>
+                    )}
+                  </div>
+                  <p className="text-[10px] leading-relaxed text-faint">
+                    Translate the clip&apos;s transcript with your configured AI provider, then render to burn the translated lines in. No offline translation model is bundled.
+                  </p>
+                  <div className="flex gap-2">
+                    <Select value={translationLanguage} onChange={(event) => setTranslationLanguage(event.target.value)} className="flex-1">
+                      {TRANSLATION_LANGUAGES.map(([code, label]) => (
+                        <option key={code} value={code}>{label}</option>
+                      ))}
+                    </Select>
+                    <Button size="sm" variant="outline" loading={translating} onClick={translateCaptions}>
+                      <Sparkles className="h-3.5 w-3.5" /> Translate
+                    </Button>
+                  </div>
+                  {draft.caption_translation.segments?.length ? (
+                    <div className="flex items-center justify-between gap-2 rounded-md bg-white/4 px-2 py-1.5">
+                      <span className="truncate text-[10.5px] text-muted">{draft.caption_translation.segments[0]?.text}</span>
+                      <button type="button" onClick={clearTranslation} className="shrink-0 text-[10px] text-faint hover:text-rose">Clear</button>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="space-y-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11.5px] font-medium">Heading</p>
+                    <Switch
+                      checked={Boolean(overrides.heading_enabled ?? true)}
+                      onCheckedChange={(value) => apply({ caption_overrides: { ...overrides, heading_enabled: value } })}
+                    />
+                  </div>
+                  <Input
+                    value={String(overrides.heading || "")}
+                    onChange={(event) => apply({ caption_overrides: { ...overrides, heading: event.target.value } })}
+                    placeholder="Optional heading above the captions"
+                    maxLength={120}
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <ColorField
+                      label="Heading color"
+                      value={String(overrides.heading_color || "#ffffff")}
+                      onChange={(value) => apply({ caption_overrides: { ...overrides, heading_color: value } })}
+                    />
+                    <label className="flex items-center gap-2 text-[11px] text-faint">
+                      <span className="w-12">Size</span>
+                      <input
+                        type="range"
+                        min={28}
+                        max={110}
+                        value={Number(overrides.heading_size || 54)}
+                        onChange={(event) => apply({ caption_overrides: { ...overrides, heading_size: Number(event.target.value) } })}
+                        className="flex-1"
+                      />
+                      <span className="w-8 text-right font-mono">{Number(overrides.heading_size || 54)}</span>
+                    </label>
+                  </div>
+                  <Switch
+                    checked={Boolean(overrides.heading_uppercase ?? false)}
+                    onCheckedChange={(value) => apply({ caption_overrides: { ...overrides, heading_uppercase: value } })}
+                    label="Uppercase heading"
+                  />
+                </div>
                 <div className="flex items-center justify-between gap-3">
                   <Field label="Font family" hint="Must be installed on the render server." className="flex-1">
                     <Input

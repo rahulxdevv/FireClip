@@ -220,6 +220,24 @@ export interface EditorProject {
   caption_style_id: string | null;
   captions_enabled: boolean;
   caption_overrides: Record<string, unknown>;
+  caption_translation: {
+    language?: string;
+    language_name?: string;
+    provider?: string;
+    model?: string;
+    segments?: Array<{ start_ms: number; end_ms: number; text: string }>;
+  };
+  layout: {
+    mode?: "fill" | "fit" | "facecam";
+    position?: string;
+    size?: number;
+    x?: number;
+    y?: number;
+    camera_x?: number;
+    camera_y?: number;
+    camera_w?: number;
+    camera_h?: number;
+  };
   overlays: Overlay[];
   music: { asset_key?: string; volume?: number } | null;
   audio: { volume?: number; muted?: boolean };
@@ -325,6 +343,15 @@ export interface Campaign {
   caption_overrides: Record<string, unknown>;
   auto_approve: boolean;
   auto_render: boolean;
+  auto_publish: boolean;
+  auto_publish_min_score: number;
+  publish_account_ids: string[];
+  publish_mode: "now" | "next_slot";
+  publish_hour_utc: number;
+  publish_privacy: string;
+  source: string;
+  source_url: string | null;
+  external_id: string | null;
   brand: {
     accent_color?: string;
     secondary_color?: string;
@@ -332,6 +359,11 @@ export interface Campaign {
     logo_text?: string;
     watermark?: string;
     cta?: string;
+    headline?: string;
+    headline_enabled?: boolean;
+    hashtags?: string[];
+    logo_asset_key?: string;
+    logo_position?: string;
   };
   created_at: string;
   updated_at: string;
@@ -346,6 +378,28 @@ export interface Campaign {
 export interface CampaignDetail extends Campaign {
   videos: Video[];
   clips: Clip[];
+}
+
+export interface CampaignFeedItem {
+  external_id: string;
+  name: string;
+  description: string;
+  brief: string;
+  source_url: string;
+  brand: Record<string, unknown>;
+  hashtags: string[];
+  clip_count: number;
+  min_score: number;
+  target_duration_ms: number;
+  ends_at: string;
+  joined: boolean;
+}
+
+export interface CampaignFeed {
+  configured: boolean;
+  label: string;
+  campaigns: CampaignFeedItem[];
+  message: string;
 }
 
 export interface Activity {

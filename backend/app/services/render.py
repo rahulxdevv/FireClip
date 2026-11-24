@@ -112,11 +112,59 @@ def build_filter_graph(
     """Return (filters, final_video_label). Audio labels are appended by caller."""
     focus_x = min(1.0, max(0.0, project.focus_x if project.focus_x is not None else 0.5))
     focus_y = min(1.0, max(0.0, project.focus_y if project.focus_y is not None else 0.5))
-    filters = [
-        f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
-        f"crop={width}:{height}:(in_w-{width})*{focus_x:.5f}:(in_h-{height})*{focus_y:.5f},"
-        f"setsar=1,format=yuv420p[base]"
-    ]
+    layout = dict(project.layout or {})
+    mode = str(layout.get("mode", "fill"))
+    if mode == "fit":
+        filters = [
+            "[0:v]split=2[bg0][fg0]",
+            f"[bg0]scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},boxblur=24:2,setsar=1[bg]",
+            f"[fg0]scale={width}:{height}:force_original_aspect_ratio=decrease,setsar=1[fg]",
+            "[bg][fg]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2,format=yuv420p[base]",
+        ]
+    elif mode == "facecam":
+        cam_x = min(0.82, max(0.0, float(layout.get("camera_x", 0.62))))
+        cam_y = min(0.82, max(0.0, float(layout.get("camera_y", 0.55))))
+        cam_w = min(1.0 - cam_x, max(0.18, float(layout.get("camera_w", 0.38))))
+        cam_h = min(1.0 - cam_y, max(0.18, float(layout.get("camera_h", 0.42))))
+        size = min(0.9, max(0.15, float(layout.get("size", 0.4))))
+        position = str(layout.get("position", "bottom_right"))
+        if position == "bottom_half":
+            pip_width = _even(width)
+            pip_height = _even(int(height * 0.5))
+            pos_x, pos_y = 0.0, 1.0
+            camera_filter = (
+                f"[cam0]scale={pip_width}:{pip_height}:force_original_aspect_ratio=increase,"
+                f"crop={pip_width}:{pip_height},setsar=1[cam]"
+            )
+        else:
+            if position == "manual":
+                pos_x = min(1.0, max(0.0, float(layout.get("x", 0.96))))
+                pos_y = min(1.0, max(0.0, float(layout.get("y", 0.96))))
+            else:
+                pos_x = 0.04 if "left" in position else 0.96
+                pos_y = 0.04 if "top" in position else 0.96
+                if position == "bottom_center":
+                    pos_x, pos_y = 0.5, 0.96
+            pip_width = _even(int(width * size))
+            camera_filter = (
+                f"[cam0]crop=iw*{cam_w:.4f}:ih*{cam_h:.4f}:iw*{cam_x:.4f}:ih*{cam_y:.4f},"
+                f"scale={pip_width}:-2,setsar=1[cam]"
+            )
+        filters = [
+            "[0:v]split=2[bg0][cam0]",
+            f"[bg0]scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},boxblur=18:2,setsar=1[bg]",
+            camera_filter,
+            f"[bg][cam]overlay=x=(main_w-overlay_w)*{pos_x:.4f}:y=(main_h-overlay_h)*{pos_y:.4f}:"
+            "shortest=1,format=yuv420p[base]",
+        ]
+    else:
+        filters = [
+            f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height}:(in_w-{width})*{focus_x:.5f}:(in_h-{height})*{focus_y:.5f},"
+            f"setsar=1,format=yuv420p[base]"
+        ]
     current = "base"
     caption_file = workdir / "captions.ass"
     if project.captions_enabled and caption_file.exists():
@@ -134,8 +182,15 @@ def build_filter_graph(
         filters.append(f"[{input_index}:v]scale={target_w}:-2[{label}]")
         x_expr = f"(main_w-overlay_w)*{min(1.0, max(0.0, float(overlay.get('x', 0.5)))):.4f}"
         y_expr = f"(main_h-overlay_h)*{min(1.0, max(0.0, float(overlay.get('y', 0.12)))):.4f}"
-        start = max(0.0, float(overlay.get("start_ms", 0)) / 1000)
-        end = min(duration, float(overlay.get("end_ms", duration * 1000)) / 1000)
+        raw_start = float(overlay.get("start_ms", 0))
+        raw_end = float(overlay.get("end_ms", duration * 1000))
+        # Explicitly marked campaign overlays use source timestamps; editor overlays are clip-relative.
+        if overlay.get("source_ms"):
+            trim_start = float(project.trim_start_ms or 0)
+            raw_start -= trim_start
+            raw_end -= trim_start
+        start = max(0.0, raw_start / 1000)
+        end = min(duration, raw_end / 1000)
         nxt = f"ov{idx}"
         filters.append(
             f"[{current}][{label}]overlay=x={x_expr}:y={y_expr}:"

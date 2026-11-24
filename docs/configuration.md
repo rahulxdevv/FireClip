@@ -47,6 +47,9 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `MAIL_FROM`, `MAIL_FROM_NAME` | `no-reply@fireclip.local`, `FireClip` | Sender identity on outgoing mail. |
 | `STRIPE_SECRET_KEY` | empty | Enables Checkout and the customer portal. |
 | `STRIPE_WEBHOOK_SECRET` | empty | Required to verify subscription and invoice webhooks. |
+| `CAMPAIGN_FEED_URL` | empty | JSON feed used by Campaign discovery; http(s), public hosts only. Without it discovery reports "not configured". |
+| `CAMPAIGN_FEED_TOKEN` | empty | Optional bearer token for the campaign feed. |
+| `CAMPAIGN_FEED_LABEL` | `Content Rewards` | Display label for the feed on the Campaigns page. |
 | `ALLOW_MOCK_TRANSCRIPTION` | `false` | Tests/demos only. Mock output is labelled in the UI. |
 | `API_HOST` | `127.0.0.1` | Local API bind address. Use `0.0.0.0` only when exposing it directly. |
 | `API_PORT` | `8000` | API port for the local runner and, in Compose, both the container and the host binding. |

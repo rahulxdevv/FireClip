@@ -45,6 +45,11 @@ export function PreviewPlayer({
     boxOpacity?: number;
     italic?: boolean;
     letterSpacing?: number;
+    heading?: string;
+    headingEnabled?: boolean;
+    headingColor?: string;
+    headingSize?: number;
+    headingUppercase?: boolean;
   };
   className?: string;
   autoPlay?: boolean;
@@ -109,6 +114,21 @@ export function PreviewPlayer({
           {formatMs(Math.max(0, trimEndMs - trimStartMs))} clip · {playing ? "preview" : "paused"}
         </span>
       </div>
+      {captionStyle?.heading && captionStyle.headingEnabled !== false ? (
+        <div className="pointer-events-none absolute inset-x-0 top-[6%] flex justify-center px-4">
+          <span
+            className="max-w-[92%] text-center font-bold leading-tight"
+            style={{
+              color: captionStyle.headingColor || "#ffffff",
+              fontSize: `clamp(11px, ${Math.max(1, (captionStyle.headingSize || 54) / 32)}vw, ${Math.max(16, Math.round((captionStyle.headingSize || 54) * 0.34))}px)`,
+              textShadow: "0 1px 4px rgba(0,0,0,0.9)",
+              textTransform: captionStyle.headingUppercase ? "uppercase" : "none",
+            }}
+          >
+            {captionStyle.heading}
+          </span>
+        </div>
+      ) : null}
       {activeSegment ? (
         <div className={cn("pointer-events-none absolute inset-0 flex justify-center px-4", captionPosition)}>
           <span

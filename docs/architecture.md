@@ -43,16 +43,17 @@ The same task callables run through ARQ in Docker and inline locally, so the UI 
 | Media | FFprobe metadata, thumbnails, audio extraction, sprite previews | Ready |
 | Transcription | faster-whisper, openai-whisper, hosted OpenAI Whisper, word timestamps, editable segments | Keys / install |
 | Speakers | Off, pause-based estimate (labelled), optional pyannote; manual speaker names | Ready / optional |
-| Campaigns | Reusable brief, target length/count/score, brand, caption style and auto-approve/auto-render policy | Ready |
+| Campaigns | Reusable brief, target length/count/score, brand kit, caption style/headline, auto-approve/auto-render/auto-publish policy, JSON campaign discovery and one-click onboarding | Ready / feed optional |
 | Clip discovery | Explainable heuristic scoring + OpenAI, Anthropic, Gemini or Ollama | Ready / Keys |
 | Clip review | Approve/reject, manual cuts, merge, bulk actions, threaded comments with resolve state, content generation | Ready |
-| Editor | Timeline, trim, crop keyframes, face-based auto-focus, caption styles, overlays, music, fades, undo/redo | Ready |
+| Editor | Timeline, trim, fill/fit/face-cam layouts, face-based auto-focus, caption presets, headings, translated captions, overlays, music, fades, undo/redo | Ready / translation keys |
 | Rendering | 9:16, 1:1, 16:9, 4:5 presets; MP4/MOV/WebM; burned ASS captions; loudness normalization | Ready |
 | Queue | Progress, cancel, retry, monthly clip and render-minute limits, ARQ worker or inline runner | Ready |
 | Exports | Download library, thumbnails, HTTP Range streaming, public share links with password/expiry | Ready |
-| Publishing | YouTube, Facebook, Instagram Reels and TikTok uploads, scheduling, retries | Keys |
+| Publishing | YouTube, Facebook, Instagram Reels and TikTok uploads, scheduling, retries, campaign auto-publish with score floor and preferred UTC slot | Keys |
 | Analytics | Platform metrics sync plus clearly labelled manual measurement | Ready / Keys |
-| Live | Record public YouTube/Twitch/Kick live streams via yt-dlp; optional auto-record and campaign auto-clip | Ready / environment |
+| Live | Record public YouTube/Twitch/Kick live streams via yt-dlp; streamer roster, optional auto-record and campaign auto-clip | Ready / environment |
+| Schedule | One timeline for queued, scheduled, published and failed posts, with cancel, retry and direct post links | Ready |
 | Dashboard | Usage, processing jobs, recent activity, notifications | Ready |
 | Billing | Enforced clip/render limits, usage/storage metering, free/starter/studio/agency catalog, Stripe checkout and portal | Keys |
 | Payments | Stripe Checkout, customer portal, invoices, signed webhook sync | Keys |
@@ -68,17 +69,19 @@ backend/
                    editors, renders/exports/jobs, publishing, analytics, ai,
                    dashboard, billing, shares, webhooks, live
     services/      media, transcription, highlights, content, captions, face,
-                   render, publishing, analytics, ai, sources
+                   render, publishing, auto-publish, campaign-feed, translation,
+                   analytics, ai, sources
     models.py      33 tables
     tasks.py       ingest, transcribe, analyze, render, publish, live recording
     jobs.py        inline + ARQ queue and recovery
     worker.py      ARQ worker + scheduled publishing cron
-  alembic/         initial, teams/billing/sharing, campaigns/live automation
-  tests/           pytest suite (49 tests)
+  alembic/         initial, teams/billing/sharing, campaigns/live automation,
+                   campaign publishing and layouts
+  tests/           pytest suite (61 tests)
 frontend/
-  app/(app)/       dashboard, videos, upload, import, campaigns, live, clips,
-                   editor, renders, exports, publish, accounts, analytics,
-                   ai-settings, workspace, billing, webhooks, settings, docs
+  app/(app)/       dashboard, videos, upload, import, campaigns, streamers, live,
+                   schedule, clips, editor, renders, exports, publish, accounts,
+                   analytics, ai-settings, workspace, billing, webhooks, settings, docs
   components/      UI kit, app shell, charts, timeline, clip cards
   lib/             API client, hooks, types, store, formatting
 Dockerfile         all-in-one image used by the Render blueprint

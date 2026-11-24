@@ -212,6 +212,12 @@ class CampaignCreate(BaseModel):
     caption_overrides: dict = Field(default_factory=dict)
     auto_approve: bool = False
     auto_render: bool = False
+    auto_publish: bool = False
+    auto_publish_min_score: int = Field(default=0, ge=0, le=100)
+    publish_account_ids: list[str] = Field(default_factory=list, max_length=20)
+    publish_mode: Literal["now", "next_slot"] = "now"
+    publish_hour_utc: int = Field(default=18, ge=0, le=23)
+    publish_privacy: Literal["public", "unlisted", "private"] = "public"
     brand: dict = Field(default_factory=dict)
 
 
@@ -228,6 +234,12 @@ class CampaignUpdate(BaseModel):
     caption_overrides: dict | None = None
     auto_approve: bool | None = None
     auto_render: bool | None = None
+    auto_publish: bool | None = None
+    auto_publish_min_score: int | None = Field(default=None, ge=0, le=100)
+    publish_account_ids: list[str] | None = Field(default=None, max_length=20)
+    publish_mode: Literal["now", "next_slot"] | None = None
+    publish_hour_utc: int | None = Field(default=None, ge=0, le=23)
+    publish_privacy: Literal["public", "unlisted", "private"] | None = None
     brand: dict | None = None
 
 
@@ -245,6 +257,15 @@ class CampaignOut(ORMModel):
     caption_overrides: dict
     auto_approve: bool
     auto_render: bool
+    auto_publish: bool
+    auto_publish_min_score: int
+    publish_account_ids: list
+    publish_mode: str
+    publish_hour_utc: int
+    publish_privacy: str
+    source: str = "internal"
+    source_url: str | None = None
+    external_id: str | None = None
     brand: dict
     created_at: datetime
     updated_at: datetime
@@ -263,6 +284,10 @@ class CampaignVideoAdd(BaseModel):
 class CampaignAnalyzeRequest(BaseModel):
     video_ids: list[str] | None = None
     replace_existing: bool = True
+
+
+class CampaignOnboardRequest(BaseModel):
+    external_id: str = Field(min_length=1, max_length=160)
 
 
 # --- Videos ---------------------------------------------------------------
@@ -582,6 +607,8 @@ class EditorUpdate(BaseModel):
     caption_style_id: str | None = None
     captions_enabled: bool | None = None
     caption_overrides: dict | None = None
+    caption_translation: dict | None = None
+    layout: dict | None = None
     overlays: list[dict] | None = None
     music: dict | None = None
     audio: dict | None = None
@@ -604,6 +631,8 @@ class EditorOut(ORMModel):
     caption_style_id: str | None
     captions_enabled: bool
     caption_overrides: dict
+    caption_translation: dict
+    layout: dict
     overlays: list
     music: dict | None
     audio: dict
@@ -620,6 +649,11 @@ class EditorDetail(EditorOut):
     video_height: int = 0
     transcript: TranscriptOut | None = None
     latest_render: "RenderOut | None" = None
+
+
+class CaptionTranslationRequest(BaseModel):
+    language: str = Field(min_length=2, max_length=24)
+    provider: str = "auto"
 
 
 class RenderRequest(BaseModel):

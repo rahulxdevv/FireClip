@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  CalendarClock,
   Clapperboard,
   Download,
   Film,
@@ -15,7 +16,7 @@ import {
 import { PageHeader, StatCard, SectionHeader, InlineProgress } from "@/components/shared";
 import { VideoCard } from "@/components/video-card";
 import { Alert, Badge, Button, EmptyState, PageSkeleton, Panel, PanelHeader } from "@/components/ui";
-import { JobStatusBadge, VideoStatusBadge } from "@/components/status";
+import { JobStatusBadge } from "@/components/status";
 import { useApi } from "@/lib/hooks";
 import { useSessionStore } from "@/lib/stores";
 import { formatBytes, formatDuration, relativeTime, scoreTone } from "@/lib/format";
@@ -48,6 +49,11 @@ export default function DashboardPage() {
         description="Everything moving through the pipeline right now - sourced from the live database."
         actions={
           <>
+            <Link href="/schedule">
+              <Button variant="outline" size="sm">
+                <CalendarClock className="h-3.5 w-3.5" /> Schedule
+              </Button>
+            </Link>
             <Link href="/import">
               <Button variant="outline" size="sm">
                 <Radio className="h-3.5 w-3.5" /> Import URL
@@ -129,7 +135,7 @@ export default function DashboardPage() {
           value={counts.published}
           hint={`${counts.scheduled_posts} scheduled`}
           icon={<ArrowRight className="h-4 w-4" />}
-          href="/publish"
+          href="/schedule"
         />
       </div>
 

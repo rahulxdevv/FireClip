@@ -173,6 +173,11 @@ class Settings:
         ".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".opus",
     )
     allowed_image_ext: tuple[str, ...] = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+    # Optional campaign discovery feed (JSON). Used for Content Rewards-style
+    # campaign imports; there is no scraping fallback when this is unset.
+    campaign_feed_url: str = os.getenv("CAMPAIGN_FEED_URL", "")
+    campaign_feed_token: str = os.getenv("CAMPAIGN_FEED_TOKEN", "")
+    campaign_feed_label: str = os.getenv("CAMPAIGN_FEED_LABEL", "Content Rewards")
     hwaccel: str = os.getenv("HWACCEL", "")  # e.g. nvenc, vaapi, videotoolbox
     loudness_target: float = _float("LOUDNESS_TARGET", -16.0)
     render_crf: int = _int("RENDER_CRF", 20)

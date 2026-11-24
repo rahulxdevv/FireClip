@@ -6,6 +6,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import case, func, select
 
+from ..config import settings
 from ..deps import RequestContext, get_context, record_audit
 from ..jobs import create_pipeline_job, enqueue
 from ..models import (
@@ -14,16 +15,19 @@ from ..models import (
     CaptionStyle,
     EditingProject,
     RenderJob,
+    SocialAccount,
     SourceVideo,
 )
 from ..schemas import (
     CampaignAnalyzeRequest,
     CampaignCreate,
     CampaignDetail,
+    CampaignOnboardRequest,
     CampaignOut,
     CampaignUpdate,
     CampaignVideoAdd,
 )
+from ..services import campaign_feed
 
 router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
 
@@ -46,22 +50,59 @@ def _validate_style(ctx: RequestContext, style_id: str | None) -> None:
 _HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
 
-def _clean_brand(brand: dict | None) -> dict:
+def _clean_brand(ctx: RequestContext, brand: dict | None) -> dict:
     if not brand:
         return {}
-    allowed = {"accent_color", "secondary_color", "font", "logo_text", "watermark", "cta"}
+    allowed = {
+        "accent_color", "secondary_color", "font", "logo_text", "watermark", "cta",
+        "headline", "headline_enabled", "hashtags", "logo_asset_key", "logo_position",
+    }
     unknown = set(brand) - allowed
     if unknown:
         raise HTTPException(status_code=422, detail=f"Unknown brand fields: {', '.join(sorted(unknown))}")
-    cleaned: dict[str, str] = {}
+    cleaned: dict = {}
     for key, value in brand.items():
+        if key == "headline_enabled":
+            cleaned[key] = bool(value)
+            continue
+        if key == "hashtags":
+            raw = value if isinstance(value, list) else str(value).replace(",", " ").split()
+            tags: list[str] = []
+            for item in raw[:20]:
+                tag = "#" + str(item).strip().lstrip("#")
+                if len(tag) > 1 and tag.lower() not in {t.lower() for t in tags}:
+                    tags.append(tag[:60])
+            cleaned[key] = tags
+            continue
         if not isinstance(value, str):
             raise HTTPException(status_code=422, detail=f"Brand field {key} must be text")
-        value = value.strip()[:200]
+        value = value.strip()[:400] if key in {"headline", "cta"} else value.strip()[:200]
         if key in {"accent_color", "secondary_color"} and value and not _HEX_COLOR.fullmatch(value):
             raise HTTPException(status_code=422, detail=f"Brand field {key} must be a hex color")
+        if key == "logo_asset_key" and value and not value.startswith(f"assets/{ctx.workspace.id}/"):
+            raise HTTPException(status_code=422, detail="Logo asset does not belong to this workspace")
+        if key == "logo_position" and value and value not in {"top_left", "top_center", "top_right"}:
+            raise HTTPException(status_code=422, detail="Logo position must be top_left, top_center or top_right")
         cleaned[key] = value
     return cleaned
+
+
+def _validate_publish_accounts(ctx: RequestContext, account_ids: list[str]) -> None:
+    if not account_ids:
+        return
+    rows = list(
+        ctx.db.scalars(
+            select(SocialAccount).where(
+                SocialAccount.id.in_(account_ids),
+                SocialAccount.workspace_id == ctx.workspace.id,
+                SocialAccount.status == "connected",
+            )
+        )
+    )
+    found = {row.id for row in rows}
+    missing = [account_id for account_id in account_ids if account_id not in found]
+    if missing:
+        raise HTTPException(status_code=400, detail="One or more publishing accounts are not connected")
 
 
 def _stats(ctx: RequestContext, campaign_ids: list[str]) -> dict[str, dict]:
@@ -128,6 +169,15 @@ def _out(ctx: RequestContext, campaign: Campaign, stats: dict | None = None) -> 
         caption_overrides=dict(campaign.caption_overrides or {}),
         auto_approve=campaign.auto_approve,
         auto_render=campaign.auto_render,
+        auto_publish=campaign.auto_publish,
+        auto_publish_min_score=campaign.auto_publish_min_score,
+        publish_account_ids=list(campaign.publish_account_ids or []),
+        publish_mode=campaign.publish_mode,
+        publish_hour_utc=campaign.publish_hour_utc,
+        publish_privacy=campaign.publish_privacy,
+        source=campaign.source,
+        source_url=campaign.source_url,
+        external_id=campaign.external_id,
         brand=dict(campaign.brand or {}),
         created_at=campaign.created_at,
         updated_at=campaign.updated_at,
@@ -158,7 +208,12 @@ def create_campaign(payload: CampaignCreate, ctx: RequestContext = Depends(get_c
     ctx.require("editor")
     if payload.auto_render and not payload.auto_approve:
         raise HTTPException(status_code=422, detail="Automatic rendering requires automatic approval")
+    if payload.auto_publish and not payload.auto_render:
+        raise HTTPException(status_code=422, detail="Automatic publishing requires automatic rendering")
+    if payload.auto_publish and not payload.publish_account_ids:
+        raise HTTPException(status_code=422, detail="Select at least one connected publishing account")
     _validate_style(ctx, payload.caption_style_id)
+    _validate_publish_accounts(ctx, payload.publish_account_ids)
     campaign = Campaign(
         workspace_id=ctx.workspace.id,
         created_by=ctx.user.id,
@@ -174,7 +229,13 @@ def create_campaign(payload: CampaignCreate, ctx: RequestContext = Depends(get_c
         caption_overrides=payload.caption_overrides,
         auto_approve=payload.auto_approve,
         auto_render=payload.auto_render,
-        brand=_clean_brand(payload.brand),
+        auto_publish=payload.auto_publish,
+        auto_publish_min_score=payload.auto_publish_min_score,
+        publish_account_ids=payload.publish_account_ids,
+        publish_mode=payload.publish_mode,
+        publish_hour_utc=payload.publish_hour_utc,
+        publish_privacy=payload.publish_privacy,
+        brand=_clean_brand(ctx, payload.brand),
     )
     ctx.db.add(campaign)
     ctx.db.commit()
@@ -185,6 +246,98 @@ def create_campaign(payload: CampaignCreate, ctx: RequestContext = Depends(get_c
         user_id=ctx.user.id,
         target_type="campaign",
         target_id=campaign.id,
+        ip_address=ctx.ip_address,
+    )
+    ctx.db.commit()
+    return _out(ctx, campaign)
+
+
+@router.get("/discover")
+def discover_campaigns(ctx: RequestContext = Depends(get_context)):
+    if not campaign_feed.configured():
+        return {
+            "configured": False,
+            "label": settings.campaign_feed_label,
+            "campaigns": [],
+            "message": "No campaign feed is configured. Set CAMPAIGN_FEED_URL to a JSON feed from your Content Rewards provider.",
+        }
+    try:
+        items = campaign_feed.fetch()
+    except campaign_feed.CampaignFeedError as exc:
+        return {
+            "configured": True,
+            "label": settings.campaign_feed_label,
+            "campaigns": [],
+            "message": str(exc),
+        }
+    joined = set(
+        ctx.db.scalars(
+            select(Campaign.external_id).where(
+                Campaign.workspace_id == ctx.workspace.id,
+                Campaign.external_id.is_not(None),
+            )
+        )
+    )
+    campaigns = []
+    for item in items:
+        campaigns.append({**item, "joined": item["external_id"] in joined})
+    return {
+        "configured": True,
+        "label": settings.campaign_feed_label,
+        "campaigns": campaigns,
+        "message": "" if campaigns else "The feed is connected but currently has no active campaigns.",
+    }
+
+
+@router.post("/onboard", response_model=CampaignOut, status_code=201)
+def onboard_campaign(
+    payload: CampaignOnboardRequest, ctx: RequestContext = Depends(get_context)
+):
+    ctx.require("editor")
+    try:
+        items = campaign_feed.fetch()
+    except campaign_feed.CampaignFeedError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    item = next((row for row in items if row["external_id"] == payload.external_id), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="That campaign is no longer active in the feed")
+    existing = ctx.db.scalar(
+        select(Campaign).where(
+            Campaign.workspace_id == ctx.workspace.id,
+            Campaign.external_id == item["external_id"],
+        )
+    )
+    if existing:
+        return _out(ctx, existing)
+    campaign = Campaign(
+        workspace_id=ctx.workspace.id,
+        created_by=ctx.user.id,
+        name=item["name"],
+        description=item["description"],
+        brief=item["brief"] or item["description"],
+        status="active",
+        aspect_ratio="9:16",
+        target_duration_ms=item["target_duration_ms"],
+        clip_count=item["clip_count"],
+        min_score=item["min_score"],
+        auto_approve=False,
+        auto_render=False,
+        auto_publish=False,
+        source="feed",
+        source_url=item["source_url"] or None,
+        external_id=item["external_id"],
+        brand=_clean_brand(ctx, item["brand"]),
+    )
+    ctx.db.add(campaign)
+    ctx.db.commit()
+    record_audit(
+        ctx.db,
+        "campaign.onboard",
+        workspace_id=ctx.workspace.id,
+        user_id=ctx.user.id,
+        target_type="campaign",
+        target_id=campaign.id,
+        meta={"external_id": item["external_id"]},
         ip_address=ctx.ip_address,
     )
     ctx.db.commit()
@@ -249,10 +402,27 @@ def update_campaign(
         campaign.auto_approve = payload.auto_approve
     if "auto_render" in payload.model_fields_set and payload.auto_render is not None:
         campaign.auto_render = payload.auto_render
+    if "auto_publish" in payload.model_fields_set and payload.auto_publish is not None:
+        campaign.auto_publish = payload.auto_publish
+    if "auto_publish_min_score" in payload.model_fields_set and payload.auto_publish_min_score is not None:
+        campaign.auto_publish_min_score = payload.auto_publish_min_score
+    if "publish_account_ids" in payload.model_fields_set and payload.publish_account_ids is not None:
+        _validate_publish_accounts(ctx, payload.publish_account_ids)
+        campaign.publish_account_ids = payload.publish_account_ids
+    if "publish_mode" in payload.model_fields_set and payload.publish_mode is not None:
+        campaign.publish_mode = payload.publish_mode
+    if "publish_hour_utc" in payload.model_fields_set and payload.publish_hour_utc is not None:
+        campaign.publish_hour_utc = payload.publish_hour_utc
+    if "publish_privacy" in payload.model_fields_set and payload.publish_privacy is not None:
+        campaign.publish_privacy = payload.publish_privacy
     if campaign.auto_render and not campaign.auto_approve:
         raise HTTPException(status_code=422, detail="Automatic rendering requires automatic approval")
+    if campaign.auto_publish and not campaign.auto_render:
+        raise HTTPException(status_code=422, detail="Automatic publishing requires automatic rendering")
+    if campaign.auto_publish and not campaign.publish_account_ids:
+        raise HTTPException(status_code=422, detail="Select at least one connected publishing account")
     if "brand" in payload.model_fields_set:
-        campaign.brand = _clean_brand(payload.brand)
+        campaign.brand = _clean_brand(ctx, payload.brand)
     ctx.db.commit()
     record_audit(
         ctx.db,

@@ -21,6 +21,7 @@ from ..models import (
 )
 from ..schemas import (
     CaptionStyleCreate,
+    CaptionTranslationRequest,
     CaptionStyleOut,
     EditorCreate,
     EditorDetail,
@@ -30,7 +31,8 @@ from ..schemas import (
     RenderRequest,
     TranscriptOut,
 )
-from ..services import facetrack
+from ..services import ai as ai_service
+from ..services import facetrack, translation
 from ..services.render import PRESETS, RenderError
 from ..services.transcription import SegmentData
 from ..storage import get_storage
@@ -158,7 +160,7 @@ def update_editor(project_id: str, payload: EditorUpdate, ctx: RequestContext = 
     for field in (
         "name", "aspect_ratio", "width", "height", "trim_start_ms", "trim_end_ms",
         "focus_x", "focus_y", "caption_style_id", "captions_enabled",
-        "caption_overrides", "overlays", "music", "audio", "operations",
+        "caption_overrides", "caption_translation", "layout", "overlays", "music", "audio", "operations",
     ):
         if field in data and data[field] is not None:
             setattr(project, field, data[field])
@@ -174,6 +176,29 @@ def update_editor(project_id: str, payload: EditorUpdate, ctx: RequestContext = 
         project.operations = (project.operations or [])[-100:]
     if payload.overlays is not None and len(payload.overlays) > 40:
         raise HTTPException(status_code=400, detail="Too many overlays")
+    if payload.layout is not None:
+        mode = str(payload.layout.get("mode", "fill"))
+        if mode not in {"fill", "fit", "facecam"}:
+            raise HTTPException(status_code=422, detail="Layout mode must be fill, fit or facecam")
+        position = payload.layout.get("position")
+        allowed_positions = {
+            "bottom_right",
+            "bottom_left",
+            "bottom_center",
+            "bottom_half",
+            "top_right",
+            "top_left",
+            "manual",
+        }
+        if position is not None and position not in allowed_positions:
+            raise HTTPException(status_code=422, detail="Unknown face cam position")
+        for key in ("camera_x", "camera_y", "camera_w", "camera_h", "x", "y"):
+            value = payload.layout.get(key)
+            if value is not None and not 0 <= float(value) <= 1:
+                raise HTTPException(status_code=422, detail=f"Layout field {key} must be between 0 and 1")
+        size = payload.layout.get("size")
+        if size is not None and not 0.1 <= float(size) <= 1:
+            raise HTTPException(status_code=422, detail="Layout size must be between 0.1 and 1")
     project.status = "draft"
     ctx.db.commit()
     ctx.db.refresh(project)
@@ -223,14 +248,87 @@ def auto_focus(project_id: str, ctx: RequestContext = Depends(get_context)):
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     project.focus_x = result.focus_x
     project.focus_y = result.focus_y
+    layout = dict(project.layout or {})
+    layout.update(
+        {
+            "camera_x": result.camera_x,
+            "camera_y": result.camera_y,
+            "camera_w": result.camera_w,
+            "camera_h": result.camera_h,
+        }
+    )
+    project.layout = layout
     ctx.db.commit()
     return {
         "focus_x": result.focus_x,
         "focus_y": result.focus_y,
+        "camera_x": result.camera_x,
+        "camera_y": result.camera_y,
+        "camera_w": result.camera_w,
+        "camera_h": result.camera_h,
         "faces_detected": result.faces_detected,
         "samples": result.samples,
         "method": result.method,
     }
+
+
+@router.post("/editors/{project_id}/translate-captions")
+def translate_captions(
+    project_id: str,
+    payload: CaptionTranslationRequest,
+    ctx: RequestContext = Depends(get_context),
+):
+    ctx.require("editor")
+    project = get_editor(ctx, project_id)
+    transcript = ctx.db.scalar(
+        select(Transcript)
+        .where(Transcript.video_id == project.video_id, Transcript.status == "completed")
+        .order_by(Transcript.created_at.desc())
+    )
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Transcribe this video before translating captions")
+    rows = list(
+        ctx.db.scalars(
+            select(TranscriptSegment)
+            .where(
+                TranscriptSegment.transcript_id == transcript.id,
+                TranscriptSegment.end_ms > project.trim_start_ms,
+                TranscriptSegment.start_ms < project.trim_end_ms,
+            )
+            .order_by(TranscriptSegment.start_ms)
+        )
+    )
+    if not rows:
+        raise HTTPException(status_code=400, detail="There are no caption lines inside this clip range")
+    if len(rows) > 600:
+        raise HTTPException(status_code=400, detail="This clip has too many caption lines to translate at once")
+    try:
+        provider = ai_service.build_provider(ctx.db, ctx.workspace.id, payload.provider)
+        result = translation.translate_segments(provider, rows, payload.language)
+    except (ai_service.AIError, translation.TranslationError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    project.caption_translation = result
+    ctx.db.commit()
+    record_audit(
+        ctx.db,
+        "editor.translate_captions",
+        workspace_id=ctx.workspace.id,
+        user_id=ctx.user.id,
+        target_type="editing_project",
+        target_id=project.id,
+        meta={"language": result["language"], "provider": result["provider"]},
+        ip_address=ctx.ip_address,
+    )
+    ctx.db.commit()
+    return result
+
+
+@router.delete("/editors/{project_id}/translate-captions", status_code=204)
+def clear_caption_translation(project_id: str, ctx: RequestContext = Depends(get_context)):
+    ctx.require("editor")
+    project = get_editor(ctx, project_id)
+    project.caption_translation = {}
+    ctx.db.commit()
 
 
 @router.post("/editors/{project_id}/render", response_model=RenderOut, status_code=202)

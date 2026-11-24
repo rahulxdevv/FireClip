@@ -144,11 +144,13 @@ Each stage is a real background job, not a request handler, so a long source nev
 | Ingest | Streamed uploads with validation, URL import via yt-dlp, SSRF protection |
 | Transcription | faster-whisper or OpenAI Whisper, word timestamps, editable segments |
 | Clip discovery | Explainable offline scoring, or OpenAI, Anthropic, Gemini, Ollama |
-| Editor | Timeline, trim, crop keyframes, face-anchored auto-crop, caption styles, overlays, music, fades, undo/redo |
+| Campaigns | Reusable brief, brand kit, required hashtags, headline/CTA overlays, JSON campaign discovery and one-click onboarding |
+| Editor | Timeline, trim, fill/fit/face-cam layouts, face-anchored auto-crop, caption presets, headings, translated captions, overlays, music, fades, undo/redo |
 | Rendering | 9:16, 1:1, 16:9 and 4:5 presets, MP4/MOV/WebM, burned ASS captions, loudness normalization |
-| Publishing | YouTube, Facebook, Instagram Reels and TikTok, with scheduling and retries |
+| Publishing | YouTube, Facebook, Instagram Reels and TikTok, manual or scheduled, campaign auto-publish with a quality floor |
+| Schedule | One timeline for queued, scheduled, published and failed posts, with direct post links, cancel and retry |
 | Analytics | Platform metric sync, plus manual numbers labelled by source |
-| Live | Record public YouTube, Twitch or Kick streams into the same pipeline |
+| Live | Streamer roster, public YouTube/Twitch/Kick recording and optional auto-clip |
 | Teams | Workspaces with owner/admin/editor/viewer roles, email invitations, audit log |
 | Review | Threaded clip comments with resolve state, bulk approve/reject/merge/delete |
 | Sharing | Password-protected, expiring public links for any export, with view counts |
@@ -196,7 +198,7 @@ Proxy examples, backups, scaling and an operations checklist: [Deployment](docs/
 
 ## Status
 
-The backend suite (45 tests), the TypeScript check, the production build and ESLint all run in CI on every push. Docker images, the Render blueprint and live OAuth/AI calls are not exercised there because they need a Docker host or real credentials. Known gaps: [Troubleshooting](docs/troubleshooting.md#known-limitations).
+The backend test suite, the TypeScript check, the production build and ESLint all run in CI on every push. Docker images, the Render blueprint and live OAuth/AI calls are not exercised there because they need a Docker host or real credentials. Known gaps: [Troubleshooting](docs/troubleshooting.md#known-limitations).
 
 ## Security
 

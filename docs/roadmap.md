@@ -15,6 +15,6 @@ Planned work, not promises. Order may change.
 | Later | Licensed B-roll/music integrations |
 | Later | Transactional email templates and delivery webhooks |
 | Exploring | Granular approval policies and review SLAs |
-| Exploring | Localization of transcripts and burned captions |
+| Exploring | Native Content Rewards API connectors where a provider publishes one |
 
 Have a different priority? Open an issue with the workflow you need.

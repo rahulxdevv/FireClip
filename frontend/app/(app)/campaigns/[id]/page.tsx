@@ -1,15 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import * as React from "react";
 import {
   ArrowLeft,
+  CalendarClock,
+  ExternalLink,
   Film,
   Flame,
+  Image as ImageIcon,
   Play,
   Plus,
   Trash2,
+  Upload,
   Wand2,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared";
@@ -32,7 +37,7 @@ import { useApi } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/stores";
 import { formatDateTime, formatDuration } from "@/lib/format";
-import type { CampaignDetail, CaptionStyle, Clip, Video } from "@/lib/types";
+import type { CampaignDetail, CaptionStyle, Clip, SocialAccount, Video } from "@/lib/types";
 
 interface FormState {
   name: string;
@@ -46,10 +51,22 @@ interface FormState {
   caption_style_id: string;
   auto_approve: boolean;
   auto_render: boolean;
+  auto_publish: boolean;
+  auto_publish_min_score: string;
+  publish_account_ids: string[];
+  publish_mode: "now" | "next_slot";
+  publish_hour_utc: string;
+  publish_privacy: string;
   text_color: string;
   highlight_color: string;
   outline_width: string;
   logo_text: string;
+  headline: string;
+  headline_enabled: boolean;
+  hashtags: string;
+  cta: string;
+  logo_asset_key: string;
+  logo_position: string;
 }
 
 function toForm(campaign: CampaignDetail): FormState {
@@ -66,10 +83,22 @@ function toForm(campaign: CampaignDetail): FormState {
     caption_style_id: campaign.caption_style_id || "",
     auto_approve: campaign.auto_approve,
     auto_render: campaign.auto_render,
+    auto_publish: campaign.auto_publish,
+    auto_publish_min_score: String(campaign.auto_publish_min_score ?? 0),
+    publish_account_ids: campaign.publish_account_ids || [],
+    publish_mode: campaign.publish_mode || "now",
+    publish_hour_utc: String(campaign.publish_hour_utc ?? 18),
+    publish_privacy: campaign.publish_privacy || "public",
     text_color: String(overrides.text_color || "#ffffff"),
     highlight_color: String(overrides.highlight_color || campaign.brand?.accent_color || "#ff6a1f"),
     outline_width: String(overrides.outline_width ?? 3),
     logo_text: campaign.brand?.logo_text || "",
+    headline: campaign.brand?.headline || "",
+    headline_enabled: campaign.brand?.headline_enabled ?? true,
+    hashtags: (campaign.brand?.hashtags || []).join(" "),
+    cta: campaign.brand?.cta || "",
+    logo_asset_key: campaign.brand?.logo_asset_key || "",
+    logo_position: campaign.brand?.logo_position || "top_center",
   };
 }
 
@@ -80,8 +109,10 @@ export default function CampaignDetailPage() {
   const campaign = useApi<CampaignDetail>(`/api/campaigns/${id}`);
   const styles = useApi<CaptionStyle[]>("/api/caption-styles");
   const library = useApi<Video[]>("/api/videos?limit=300");
+  const accounts = useApi<SocialAccount[]>("/api/publishing/accounts");
   const [form, setForm] = React.useState<FormState | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [uploadingLogo, setUploadingLogo] = React.useState(false);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [attachOpen, setAttachOpen] = React.useState(false);
   const [selectedVideos, setSelectedVideos] = React.useState<string[]>([]);
@@ -95,9 +126,29 @@ export default function CampaignDetailPage() {
     setForm((current) => (current ? { ...current, [key]: value } : current));
   }
 
+  async function uploadLogo(file: File) {
+    setUploadingLogo(true);
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      data.append("kind", "image");
+      const asset = await api.upload<{ key: string }>("/api/assets", data);
+      change("logo_asset_key", asset.key);
+      toast("Logo uploaded - save the campaign to apply it", "success");
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!form) return;
+    if (form.auto_publish && form.publish_account_ids.length === 0) {
+      setActionError("Select at least one connected account before enabling auto-publish.");
+      return;
+    }
     setSaving(true);
     setActionError(null);
     try {
@@ -119,10 +170,22 @@ export default function CampaignDetailPage() {
         },
         auto_approve: form.auto_approve,
         auto_render: form.auto_render,
+        auto_publish: form.auto_publish,
+        auto_publish_min_score: Number(form.auto_publish_min_score),
+        publish_account_ids: form.publish_account_ids,
+        publish_mode: form.publish_mode,
+        publish_hour_utc: Number(form.publish_hour_utc),
+        publish_privacy: form.publish_privacy,
         brand: {
           ...(campaign.data?.brand || {}),
           accent_color: form.highlight_color,
           logo_text: form.logo_text.trim(),
+          headline: form.headline.trim(),
+          headline_enabled: form.headline_enabled,
+          hashtags: form.hashtags.split(/[\s,]+/).filter(Boolean),
+          cta: form.cta.trim(),
+          logo_asset_key: form.logo_asset_key || "",
+          logo_position: form.logo_position,
         },
       });
       await campaign.refresh();
@@ -236,7 +299,13 @@ export default function CampaignDetailPage() {
         <Badge tone={data.status === "active" ? "mint" : data.status === "paused" ? "ember" : "neutral"}>{data.status}</Badge>
         <Badge tone="outline">{data.aspect_ratio}</Badge>
         <Badge tone="outline">{formatDuration(data.target_duration_ms, true)} target</Badge>
+        {data.source !== "internal" ? <Badge tone="neutral">{data.source}</Badge> : null}
         <span className="text-faint">Created {formatDateTime(data.created_at)}</span>
+        {data.source_url ? (
+          <a href={data.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-flame-300 hover:underline">
+            <ExternalLink className="h-3 w-3" /> Campaign source
+          </a>
+        ) : null}
       </div>
 
       {actionError ? <Alert className="mb-4">{actionError}</Alert> : null}
@@ -385,25 +454,156 @@ export default function CampaignDetailPage() {
                 <Input type="number" min={0} max={12} value={form.outline_width} onChange={(event) => change("outline_width", event.target.value)} />
               </Field>
             </div>
-            <Field label="Brand mark" hint="Applied as a text watermark on automatic renders; not a logo upload.">
-              <Input maxLength={200} value={form.logo_text} onChange={(event) => change("logo_text", event.target.value)} placeholder="@yourbrand" />
-            </Field>
+            <div className="rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+              <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-faint">Brand kit</p>
+              <div className="space-y-3">
+                <Field label="Headline overlay" hint="Short hook shown at the top of every auto-render.">
+                  <Input maxLength={160} value={form.headline} onChange={(event) => change("headline", event.target.value)} placeholder="The part nobody tells you" />
+                </Field>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] text-muted">Show headline</span>
+                  <Switch checked={form.headline_enabled} onCheckedChange={(value) => change("headline_enabled", value)} />
+                </div>
+                <Field label="Required hashtags" hint="Added to every automatic post. Space or comma separated.">
+                  <Input maxLength={300} value={form.hashtags} onChange={(event) => change("hashtags", event.target.value)} placeholder="#shorts #creator" />
+                </Field>
+                <Field label="Call to action overlay">
+                  <Input maxLength={120} value={form.cta} onChange={(event) => change("cta", event.target.value)} placeholder="Follow for more" />
+                </Field>
+                <Field label="Text mark fallback">
+                  <Input maxLength={200} value={form.logo_text} onChange={(event) => change("logo_text", event.target.value)} placeholder="@yourbrand" />
+                </Field>
+                <div>
+                  <p className="mb-1.5 text-[11px] text-muted">Logo image</p>
+                  <div className="flex items-center gap-2">
+                    {form.logo_asset_key ? (
+                      <Image
+                        src={`/api/assets/${form.logo_asset_key}`}
+                        alt="Campaign logo"
+                        width={44}
+                        height={44}
+                        unoptimized
+                        className="h-11 w-11 rounded border border-white/10 bg-ink-950 object-contain"
+                      />
+                    ) : (
+                      <span className="flex h-11 w-11 items-center justify-center rounded border border-dashed border-white/15 text-faint"><ImageIcon className="h-4 w-4" /></span>
+                    )}
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] hover:bg-white/5">
+                      <Upload className="h-3.5 w-3.5" /> {uploadingLogo ? "Uploading..." : form.logo_asset_key ? "Replace" : "Upload"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        disabled={uploadingLogo}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) uploadLogo(file);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {form.logo_asset_key ? (
+                      <button type="button" onClick={() => change("logo_asset_key", "")} className="text-[10.5px] text-faint hover:text-rose">Remove</button>
+                    ) : null}
+                  </div>
+                </div>
+                <Field label="Logo position">
+                  <Select value={form.logo_position} onChange={(event) => change("logo_position", event.target.value)}>
+                    <option value="top_center">Top center</option>
+                    <option value="top_left">Top left</option>
+                    <option value="top_right">Top right</option>
+                  </Select>
+                </Field>
+              </div>
+            </div>
+
             <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+              <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-faint">Automation</p>
               <Switch
                 checked={form.auto_approve}
                 onCheckedChange={(value) => setForm((current) => current ? {
                   ...current,
                   auto_approve: value,
                   auto_render: value ? current.auto_render : false,
+                  auto_publish: value ? current.auto_publish : false,
                 } : current)}
                 label="Auto-approve clips above minimum score"
               />
               <Switch
                 checked={form.auto_render}
                 disabled={!form.auto_approve}
-                onCheckedChange={(value) => change("auto_render", value)}
+                onCheckedChange={(value) => setForm((current) => current ? {
+                  ...current,
+                  auto_render: value,
+                  auto_publish: value ? current.auto_publish : false,
+                } : current)}
                 label="Auto-render approved clips"
               />
+              <Switch
+                checked={form.auto_publish}
+                disabled={!form.auto_render}
+                onCheckedChange={(value) => change("auto_publish", value)}
+                label="Auto-publish rendered clips"
+              />
+              {form.auto_publish ? (
+                <div className="space-y-3 border-t border-white/6 pt-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Quality floor" hint="Skip below this score.">
+                      <Input type="number" min={0} max={100} value={form.auto_publish_min_score} onChange={(event) => change("auto_publish_min_score", event.target.value)} />
+                    </Field>
+                    <Field label="When">
+                      <Select value={form.publish_mode} onChange={(event) => change("publish_mode", event.target.value as "now" | "next_slot")}>
+                        <option value="now">Post now</option>
+                        <option value="next_slot">Next preferred slot</option>
+                      </Select>
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Preferred hour (UTC)">
+                      <Input type="number" min={0} max={23} value={form.publish_hour_utc} onChange={(event) => change("publish_hour_utc", event.target.value)} />
+                    </Field>
+                    <Field label="Privacy">
+                      <Select value={form.publish_privacy} onChange={(event) => change("publish_privacy", event.target.value)}>
+                        <option value="public">Public</option>
+                        <option value="unlisted">Unlisted</option>
+                        <option value="private">Private</option>
+                      </Select>
+                    </Field>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-[11px] text-muted">Publish to</p>
+                    {(accounts.data || []).filter((account) => account.status === "connected").length === 0 ? (
+                      <p className="rounded-md border border-ember/20 bg-ember/5 px-2.5 py-2 text-[10.5px] text-ember">
+                        Connect a social account first. Nothing is posted without an authorised account.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(accounts.data || []).filter((account) => account.status === "connected").map((account) => (
+                          <label key={account.id} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-white/4">
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 accent-flame-500"
+                              checked={form.publish_account_ids.includes(account.id)}
+                              onChange={(event) => {
+                                const next = event.target.checked
+                                  ? [...form.publish_account_ids, account.id]
+                                  : form.publish_account_ids.filter((value) => value !== account.id);
+                                change("publish_account_ids", next);
+                              }}
+                            />
+                            <span className="min-w-0 flex-1 truncate text-[11px]">{account.account_name}</span>
+                            <span className="text-[9.5px] uppercase text-faint">{account.platform}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-faint">
+                    <CalendarClock className="mt-0.5 h-3 w-3 shrink-0" />
+                    Preferred slots are UTC. Posts wait for the next chosen hour and can be cancelled from Schedule.
+                  </p>
+                </div>
+              ) : null}
             </div>
             <Button type="submit" loading={saving} className="w-full">Save campaign</Button>
           </form>

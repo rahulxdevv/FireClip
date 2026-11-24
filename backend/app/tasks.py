@@ -31,7 +31,7 @@ from .models import (
     Workspace,
 )
 from .services import ai as ai_service
-from .services import billing, highlights, media, sources, transcription
+from .services import auto_publish, billing, highlights, media, sources, transcription
 from .services.render import cleanup_temp, render_project
 from .services.webhooks import emit as emit_webhook
 from .storage import build_key, get_storage
@@ -53,6 +53,83 @@ def _update_video(video_id: str, **fields) -> None:
             return
         for key, value in fields.items():
             setattr(video, key, value)
+
+
+def _campaign_overlays(
+    *,
+    brand_mark: str,
+    brand_accent: str,
+    headline: str,
+    cta: str,
+    hashtags: str,
+    logo_key: str,
+    logo_x: float,
+    start_ms: int,
+    end_ms: int,
+) -> list[dict]:
+    """Build the campaign brand kit as render-time overlays."""
+    overlays: list[dict] = []
+    logo_exists = False
+    if logo_key:
+        try:
+            logo_exists = get_storage().exists(logo_key)
+        except Exception:
+            logo_exists = False
+    if logo_exists:
+        overlays.append(
+            {
+                "type": "image",
+                "asset_key": logo_key,
+                "x": logo_x,
+                "y": 0.035,
+                "width": 0.2,
+                "start_ms": start_ms,
+                "end_ms": max(start_ms + 500, end_ms),
+                "source_ms": True,
+            }
+        )
+    elif brand_mark:
+        # Text is centre-anchored in ASS, so keep it away from the frame edge.
+        text_x = 0.18 if logo_x < 0.25 else 0.82 if logo_x > 0.75 else 0.5
+        overlays.append(
+            {
+                "type": "text",
+                "text": brand_mark,
+                "x": text_x,
+                "y": 0.06,
+                "font_size": 38,
+                "color": "#ffffff",
+                "outline_color": brand_accent,
+                "outline_width": 4,
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "animation": "none",
+                "source_ms": True,
+            }
+        )
+    for index, (text, y, size) in enumerate(
+        ((headline, 0.15, 52), (hashtags, 0.225, 28), (cta, 0.27, 30))
+    ):
+        if not text:
+            continue
+        overlays.append(
+            {
+                "type": "text",
+                "text": text,
+                "x": 0.5,
+                "y": y,
+                "font_size": size,
+                "color": "#ffffff",
+                "outline_color": brand_accent,
+                "outline_width": 3,
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "animation": "none",
+                "source_ms": True,
+                "_brand_index": index,
+            }
+        )
+    return overlays
 
 
 def _chain_transcription(video_id: str, workspace_id: str, *, engine: str = "auto", auto_analyze: bool = True) -> None:
@@ -504,6 +581,19 @@ def analyze_video(reporter: JobReporter) -> None:
             brand = dict(campaign.brand or {}) if campaign else {}
             brand_mark = str(brand.get("logo_text") or "").strip()[:80]
             brand_accent = str(brand.get("accent_color") or "#ff6a1f")
+            caption_overrides = dict(campaign.caption_overrides or {}) if campaign else {}
+            caption_overrides.setdefault("highlight_color", brand_accent)
+            if str(brand.get("font") or "").strip():
+                caption_overrides.setdefault("font", str(brand["font"]).strip()[:80])
+            brand_headline = str(brand.get("headline") or "").strip()[:160]
+            brand_cta = str(brand.get("cta") or "").strip()[:120]
+            brand_tags = brand.get("hashtags") or []
+            if isinstance(brand_tags, str):
+                brand_tags = brand_tags.split()
+            brand_tags_text = " ".join(str(tag) for tag in brand_tags[:6])[:120]
+            brand_logo = str(brand.get("logo_asset_key") or "").strip()
+            logo_position = str(brand.get("logo_position") or "top_center")
+            logo_x = {"top_left": 0.04, "top_center": 0.5, "top_right": 0.96}.get(logo_position, 0.5)
             for clip in selected:
                 status = "approved" if campaign and campaign.auto_approve and campaign_automation else "suggested"
                 row = CandidateClip(
@@ -552,25 +642,17 @@ def analyze_video(reporter: JobReporter) -> None:
                     trim_end_ms=clip.end_ms,
                     caption_style_id=campaign.caption_style_id,
                     captions_enabled=True,
-                    caption_overrides=dict(campaign.caption_overrides or {}),
-                    overlays=(
-                        [
-                            {
-                                "type": "text",
-                                "text": brand_mark,
-                                "x": 0.5,
-                                "y": 0.07,
-                                "font_size": 38,
-                                "color": "#ffffff",
-                                "outline_color": brand_accent,
-                                "outline_width": 4,
-                                "start_ms": clip.start_ms,
-                                "end_ms": clip.end_ms,
-                                "animation": "none",
-                            }
-                        ]
-                        if brand_mark
-                        else []
+                    caption_overrides=caption_overrides,
+                    overlays=_campaign_overlays(
+                        brand_mark=brand_mark,
+                        brand_accent=brand_accent,
+                        headline=brand_headline if brand.get("headline_enabled", True) else "",
+                        cta=brand_cta,
+                        hashtags=brand_tags_text,
+                        logo_key=brand_logo,
+                        logo_x=logo_x,
+                        start_ms=clip.start_ms,
+                        end_ms=clip.end_ms,
                     ),
                     music=None,
                     audio={},
@@ -680,6 +762,18 @@ def render_video(reporter: JobReporter) -> None:
                         start_ms=row.start_ms, end_ms=row.end_ms, text=row.text, words=row.words or []
                     )
                 )
+        translated = project.caption_translation or {}
+        if translated.get("segments"):
+            segments = [
+                transcription.SegmentData(
+                    start_ms=int(row.get("start_ms", 0)),
+                    end_ms=int(row.get("end_ms", 0)),
+                    text=str(row.get("text", "")),
+                    words=[],
+                )
+                for row in translated["segments"]
+                if int(row.get("end_ms", 0)) > int(row.get("start_ms", 0))
+            ]
         style_row = db.get(CaptionStyle, project.caption_style_id) if project.caption_style_id else None
         render.status = "running"
         render.started_at = _now()
@@ -699,6 +793,7 @@ def render_video(reporter: JobReporter) -> None:
             workspace_id=project.workspace_id,
             video_id=project.video_id,
             clip_id=project.clip_id,
+            campaign_id=project.campaign_id,
             created_by=project.created_by,
             name=project.name,
             aspect_ratio=project.aspect_ratio,
@@ -711,6 +806,8 @@ def render_video(reporter: JobReporter) -> None:
             caption_style_id=project.caption_style_id,
             captions_enabled=project.captions_enabled,
             caption_overrides=dict(project.caption_overrides or {}),
+            caption_translation=dict(project.caption_translation or {}),
+            layout=dict(project.layout or {}),
             overlays=list(project.overlays or []),
             music=dict(project.music or {}) if project.music else None,
             audio=dict(project.audio or {}),
@@ -786,6 +883,7 @@ def render_video(reporter: JobReporter) -> None:
         cleanup_temp(render_id)
         raise
 
+    auto_pipeline_jobs: list[str] = []
     with session_scope() as db:
         render = db.get(RenderJob, render_id)
         if not render:
@@ -812,9 +910,24 @@ def render_video(reporter: JobReporter) -> None:
             size_bytes=result.size_bytes,
         )
         db.add(export)
+        db.flush()
         video = db.get(SourceVideo, video_snapshot.id)
         if video:
             video.status = "ready"
+        if project_snapshot.campaign_id:
+            campaign = db.get(Campaign, project_snapshot.campaign_id)
+            clip = db.get(CandidateClip, project_snapshot.clip_id) if project_snapshot.clip_id else None
+            if campaign and video:
+                try:
+                    auto_pipeline_jobs = [
+                        pipeline_id
+                        for pipeline_id, _publish_id in auto_publish.queue_for_export(
+                            db, campaign, export, clip, video, project_snapshot.created_by
+                        )
+                        if pipeline_id
+                    ]
+                except Exception:
+                    logger.exception("Automatic publishing could not be queued for render %s", render_id)
         db.add(
             UsageRecord(
                 workspace_id=workspace_id,
@@ -841,6 +954,8 @@ def render_video(reporter: JobReporter) -> None:
                 "size_bytes": result.size_bytes,
             },
         )
+    for pipeline_id in auto_pipeline_jobs:
+        enqueue(pipeline_id)
     cleanup_temp(render_id)
     reporter.progress(100, "ready")
 

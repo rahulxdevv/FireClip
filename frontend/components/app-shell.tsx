@@ -6,6 +6,7 @@ import * as React from "react";
 import {
   Bell,
   BookOpen,
+  CalendarClock,
   Check,
   ChevronDown,
   Clapperboard,
@@ -19,6 +20,7 @@ import {
   Megaphone,
   Menu,
   Radio,
+  RadioTower,
   Scissors,
   Settings,
   Sparkles,
@@ -43,6 +45,7 @@ const NAV = [
       { href: "/videos", label: "Video library", icon: Film },
       { href: "/upload", label: "Upload video", icon: Upload },
       { href: "/import", label: "Import from URL", icon: Link2 },
+      { href: "/streamers", label: "Streamers", icon: RadioTower },
       { href: "/live", label: "Live streams", icon: Radio },
     ],
   },
@@ -59,6 +62,7 @@ const NAV = [
     group: "Distribute",
     items: [
       { href: "/publish", label: "Publishing", icon: Sparkles },
+      { href: "/schedule", label: "Schedule", icon: CalendarClock },
       { href: "/accounts", label: "Social accounts", icon: Users },
       { href: "/analytics", label: "Analytics", icon: Scissors },
     ],

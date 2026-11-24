@@ -26,6 +26,10 @@ class FocusResult:
     faces_detected: int
     samples: int
     method: str
+    camera_x: float = 0.6
+    camera_y: float = 0.5
+    camera_w: float = 0.4
+    camera_h: float = 0.5
 
 
 def available() -> bool:
@@ -69,7 +73,7 @@ def detect_focus(
     end = min(clip_end_ms, duration_ms) if duration_ms else clip_end_ms
     span = max(1000, end - start)
 
-    detections: list[tuple[float, float, float]] = []  # cx, cy, area (normalized)
+    detections: list[tuple[float, float, float, float, float]] = []  # cx, cy, area, w, h (normalized)
     frame_width = capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0
     frame_height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0
     try:
@@ -91,6 +95,8 @@ def detect_focus(
                     (x + w / 2) / frame_width,
                     (y + h * 0.45) / frame_height,
                     (w * h) / (frame_width * frame_height),
+                    w / frame_width,
+                    h / frame_height,
                 )
             )
     finally:
@@ -102,10 +108,16 @@ def detect_focus(
         )
 
     # Median resists one-off false positives; area weighting prefers the closest subject.
-    weights = [max(0.01, area) for _cx, _cy, area in detections]
+    weights = [max(0.01, item[2]) for item in detections]
     total = sum(weights)
-    cx = sum(d[0] * w for d, w in zip(detections, weights)) / total
-    cy = sum(d[1] * w for d, w in zip(detections, weights)) / total
+    cx = sum(item[0] * weight for item, weight in zip(detections, weights)) / total
+    cy = sum(item[1] * weight for item, weight in zip(detections, weights)) / total
+    face_w = sum(item[3] * weight for item, weight in zip(detections, weights)) / total
+    face_h = sum(item[4] * weight for item, weight in zip(detections, weights)) / total
+    camera_w = min(0.9, max(0.24, face_w * 2.8))
+    camera_h = min(0.9, max(0.3, face_h * 3.2))
+    camera_x = min(1.0 - camera_w, max(0.0, cx - camera_w / 2))
+    camera_y = min(1.0 - camera_h, max(0.0, cy - camera_h * 0.35))
 
     source_ratio = frame_width / frame_height
     target_ratio = target_width / target_height
@@ -128,4 +140,8 @@ def detect_focus(
         faces_detected=len(detections),
         samples=samples,
         method="haar_cascade_dominant_face",
+        camera_x=round(camera_x, 4),
+        camera_y=round(camera_y, 4),
+        camera_w=round(camera_w, 4),
+        camera_h=round(camera_h, 4),
     )

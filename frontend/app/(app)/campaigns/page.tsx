@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
-import { ArrowRight, Clock, Film, Megaphone, Plus, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Clock, Download, ExternalLink, Film, Megaphone, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shared";
 import {
   Alert,
@@ -23,7 +24,7 @@ import { useApi } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/stores";
 import { formatDuration } from "@/lib/format";
-import type { Campaign, CaptionStyle } from "@/lib/types";
+import type { Campaign, CampaignFeed, CampaignFeedItem, CaptionStyle } from "@/lib/types";
 
 const emptyForm = {
   name: "",
@@ -38,11 +39,18 @@ const emptyForm = {
   auto_render: false,
   accent_color: "#ff6a1f",
   logo_text: "",
+  headline: "",
+  hashtags: "",
+  cta: "",
+  logo_position: "top_center",
 };
 
 export default function CampaignsPage() {
+  const router = useRouter();
   const { data, error, loading, refresh } = useApi<Campaign[]>("/api/campaigns");
+  const feed = useApi<CampaignFeed>("/api/campaigns/discover");
   const styles = useApi<CaptionStyle[]>("/api/caption-styles");
+  const [joining, setJoining] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState(emptyForm);
   const [submitting, setSubmitting] = React.useState(false);
@@ -50,6 +58,22 @@ export default function CampaignsPage() {
 
   function change<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function join(item: CampaignFeedItem) {
+    setJoining(item.external_id);
+    try {
+      const campaign = await api.post<Campaign>("/api/campaigns/onboard", {
+        external_id: item.external_id,
+      });
+      toast(item.joined ? "Campaign already in your workspace" : "Campaign added", "success");
+      feed.refresh();
+      router.push(`/campaigns/${campaign.id}`);
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setJoining(null);
+    }
   }
 
   async function create(event: React.FormEvent) {
@@ -72,6 +96,11 @@ export default function CampaignsPage() {
         brand: {
           accent_color: form.accent_color,
           logo_text: form.logo_text.trim(),
+          headline: form.headline.trim(),
+          headline_enabled: Boolean(form.headline.trim()),
+          hashtags: form.hashtags.split(/[\s,]+/).filter(Boolean),
+          cta: form.cta.trim(),
+          logo_position: form.logo_position,
         },
       });
       setOpen(false);
@@ -97,6 +126,89 @@ export default function CampaignsPage() {
           </Button>
         }
       />
+
+      <Panel className="mb-5">
+        <PanelHeader
+          title={feed.data?.label || "Campaign discovery"}
+          description="Import a live campaign brief, required hashtags and brand kit in one click. Campaigns already added stay linked to their source."
+          action={
+            <div className="flex items-center gap-2">
+              <Badge tone={feed.data?.configured ? "mint" : "neutral"}>
+                {feed.data?.configured ? "feed connected" : "not configured"}
+              </Badge>
+              <button
+                onClick={() => feed.refresh()}
+                className="rounded p-1.5 text-faint hover:bg-white/5 hover:text-paper"
+                aria-label="Refresh campaign feed"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          }
+        />
+        {feed.loading && !feed.data ? (
+          <div className="p-4"><PageSkeleton /></div>
+        ) : feed.error ? (
+          <div className="p-4"><Alert>{feed.error}</Alert></div>
+        ) : !feed.data?.configured ? (
+          <div className="p-4">
+            <Alert tone="info" title="No campaign feed connected">
+              Set <code className="font-mono text-[11px]">CAMPAIGN_FEED_URL</code> to a JSON feed from your
+              Content Rewards provider. FireClip does not scrape campaign pages or invent live campaigns;
+              when the feed is connected, active campaigns appear here automatically.
+            </Alert>
+          </div>
+        ) : feed.data.campaigns.length === 0 ? (
+          <div className="p-4">
+            <Alert tone="info">{feed.data.message || "No active campaigns in the feed right now."}</Alert>
+          </div>
+        ) : (
+          <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+            {feed.data.campaigns.map((item) => (
+              <div key={item.external_id} className="flex flex-col rounded-lg border border-white/8 bg-ink-850/50 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[12.5px] font-medium">{item.name}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-faint">
+                      {item.description || item.brief || "Campaign brief in the feed."}
+                    </p>
+                  </div>
+                  {item.joined ? <Badge tone="mint">joined</Badge> : <Badge tone="flame">live</Badge>}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {item.hashtags.slice(0, 4).map((tag) => (
+                    <span key={tag} className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[9.5px] text-muted">{tag}</span>
+                  ))}
+                  {item.ends_at ? <span className="text-[10px] text-faint">Ends {item.ends_at.slice(0, 10)}</span> : null}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={item.joined ? "outline" : undefined}
+                    loading={joining === item.external_id}
+                    onClick={() => join(item)}
+                    className="flex-1"
+                  >
+                    {item.joined ? <ExternalLink className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
+                    {item.joined ? "Open campaign" : "Add to My Campaigns"}
+                  </Button>
+                  {item.source_url ? (
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded p-2 text-faint hover:bg-white/5 hover:text-paper"
+                      aria-label="Open campaign source"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
 
       {error ? <Alert className="mb-4">{error}</Alert> : null}
       {loading && !data ? (
@@ -126,6 +238,8 @@ export default function CampaignsPage() {
                       </Badge>
                       <Badge tone="outline">{campaign.aspect_ratio}</Badge>
                       {campaign.auto_render ? <Badge tone="flame">automated</Badge> : null}
+                      {campaign.auto_publish ? <Badge tone="mint">auto-post</Badge> : null}
+                      {campaign.source !== "internal" ? <Badge tone="neutral">{campaign.source}</Badge> : null}
                     </div>
                     <h2 className="mt-2.5 truncate text-[15px] font-semibold text-paper">{campaign.name}</h2>
                     <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-muted">
@@ -252,6 +366,24 @@ export default function CampaignsPage() {
           <Field label="Brand mark" hint="Optional text watermark applied to automatic renders in this campaign’s accent color.">
             <Input maxLength={200} value={form.logo_text} onChange={(event) => change("logo_text", event.target.value)} placeholder="@yourbrand" />
           </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Headline overlay" hint="Short hook shown at the top of every auto-render.">
+              <Input maxLength={160} value={form.headline} onChange={(event) => change("headline", event.target.value)} placeholder="The part nobody tells you" />
+            </Field>
+            <Field label="Required hashtags" hint="Comma or space separated. Added to every auto-post.">
+              <Input maxLength={300} value={form.hashtags} onChange={(event) => change("hashtags", event.target.value)} placeholder="#shorts #creator" />
+            </Field>
+            <Field label="Call to action overlay">
+              <Input maxLength={120} value={form.cta} onChange={(event) => change("cta", event.target.value)} placeholder="Follow for more" />
+            </Field>
+            <Field label="Logo position">
+              <Select value={form.logo_position} onChange={(event) => change("logo_position", event.target.value)}>
+                <option value="top_center">Top center</option>
+                <option value="top_left">Top left</option>
+                <option value="top_right">Top right</option>
+              </Select>
+            </Field>
+          </div>
           <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
             <Switch
               checked={form.auto_approve}

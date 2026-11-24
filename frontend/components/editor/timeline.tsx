@@ -173,14 +173,35 @@ export function FramingPreview({
   aspect,
   focusX,
   focusY,
+  layout,
   className,
 }: {
   src: string;
   aspect: string;
   focusX: number;
   focusY: number;
+  layout?: { mode?: string; position?: string; size?: number; x?: number; y?: number };
   className?: string;
 }) {
+  const mode = layout?.mode || "fill";
+  const position = layout?.position || "bottom_right";
+  const manual = position === "manual";
+  const bottomHalf = position === "bottom_half";
+  const pipStyle: React.CSSProperties = bottomHalf
+    ? { left: 0, bottom: 0, width: "100%", height: "50%" }
+    : {
+    width: `${Math.round((layout?.size ?? 0.4) * 100)}%`,
+    aspectRatio: "3 / 4",
+    ...(manual
+      ? { left: `${(layout?.x ?? 0.96) * 100}%`, top: `${(layout?.y ?? 0.96) * 100}%`, transform: "translate(-100%, -100%)" }
+      : position.includes("left")
+        ? { left: "6%", [position.includes("top") ? "top" : "bottom"]: "6%" }
+        : position === "bottom_center"
+          ? { left: "50%", bottom: "6%", transform: "translateX(-50%)" }
+          : position.includes("top")
+            ? { right: "6%", top: "6%" }
+            : { right: "6%", bottom: "6%" }),
+  };
   return (
     <div
       className={cn(
@@ -200,12 +221,28 @@ export function FramingPreview({
         muted
         playsInline
         preload="metadata"
-        className="h-full w-full object-cover"
+        className={`h-full w-full ${mode === "fit" ? "object-contain" : "object-cover"}`}
         style={{ objectPosition: `${focusX * 100}% ${focusY * 100}%` }}
       />
+      {mode === "facecam" ? (
+        <div
+          className="pointer-events-none absolute overflow-hidden rounded border-2 border-flame-500/70 bg-ink-950/40 shadow-lg"
+          style={pipStyle}
+        >
+          <video
+            src={src}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover"
+            style={{ objectPosition: `${focusX * 100}% ${focusY * 100}%` }}
+          />
+          <span className="absolute bottom-0.5 left-1 rounded bg-black/70 px-1 py-0.5 font-mono text-[7px] text-white/80">cam</span>
+        </div>
+      ) : null}
       <div className="pointer-events-none absolute inset-0 border border-flame-500/30" />
       <span className="absolute bottom-1.5 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] text-white/80">
-        {aspect} · {Math.round(focusX * 100)}/{Math.round(focusY * 100)}
+        {mode === "facecam" ? "face cam" : mode === "fit" ? "fit" : `${aspect} · ${Math.round(focusX * 100)}/${Math.round(focusY * 100)}`}
       </span>
     </div>
   );

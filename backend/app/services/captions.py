@@ -398,6 +398,10 @@ def build_caption_ass(
         primary = _ass_color(merged.get("text_color", "#ffffff"))
         secondary = _ass_color(merged.get("text_color", "#ffffff"))
     outline_color = _ass_color(merged.get("outline_color", "#0b0b0f"))
+    heading_text = str(merged.get("heading", "") or "").strip()
+    heading_enabled = bool(merged.get("heading_enabled", True)) and bool(heading_text)
+    heading_size = max(18, int(int(merged.get("heading_size", 54)) * scale))
+    heading_color = _ass_color(merged.get("heading_color", "#ffffff"))
     if merged.get("box"):
         back_color = _ass_color(
             merged.get("box_color") or merged.get("outline_color", "#0b0b0f"),
@@ -422,6 +426,7 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Fire,{merged.get('font', 'Arial')},{font_size},{primary},{secondary},{outline_color},{back_color},{1 if merged.get('bold') else 0},{1 if merged.get('italic') else 0},0,0,100,100,{spacing},0,{border_style},{outline},{shadow},{alignment},{margin_h},{margin_h},{margin_v},1
+{"Style: Heading," + str(merged.get("font", "Arial")) + "," + str(heading_size) + "," + heading_color + "," + heading_color + "," + outline_color + "," + back_color + ",1,0,0,0,100,100,0,0," + str(border_style) + "," + str(outline) + "," + str(shadow) + ",8," + str(margin_h) + "," + str(margin_h) + "," + str(max(20, int(70 * scale))) + ",1" if heading_enabled else ""}
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -433,6 +438,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     uppercase = bool(merged.get("uppercase", False))
 
     events: list[str] = []
+    if heading_enabled:
+        heading_clip = _escape(heading_text.upper() if merged.get("heading_uppercase") else heading_text)
+        duration_s = max(0.1, (clip_end_ms - clip_start_ms) / 1000)
+        events.append(f"Dialogue: 0,0:00:00.00,{ass_time(duration_s)},Heading,,0,0,0,,{heading_clip}")
     previous_end = 0.0
     for index, line in enumerate(lines):
         line_start = max(previous_end, float(line[0]["start_ms"]))
@@ -483,11 +492,11 @@ def build_overlay_ass(
 ScriptType: v4.00+
 PlayResX: {width}
 PlayResY: {height}
-WrapStyle: 2
+WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Overlay,Arial,48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,5,10,10,10,1
+Style: Overlay,Arial,48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,5,40,40,10,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -499,8 +508,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         text = _escape(str(overlay.get("text", "")))
         if not text:
             continue
-        start = max(0, int(overlay.get("start_ms", 0)) - clip_start_ms)
-        end = min(clip_end_ms - clip_start_ms, int(overlay.get("end_ms", clip_end_ms)) - clip_start_ms)
+        # Campaign overlays carry source timestamps; editor overlays are clip-relative.
+        offset = clip_start_ms if overlay.get("source_ms") else 0
+        duration_ms = clip_end_ms - clip_start_ms
+        start = max(0, int(overlay.get("start_ms", 0)) - offset)
+        end = min(duration_ms, int(overlay.get("end_ms", clip_end_ms)) - offset)
         if end <= start:
             continue
         x = float(overlay.get("x", 0.5))
