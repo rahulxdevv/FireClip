@@ -114,12 +114,12 @@ services:
       INSTAGRAM_CLIENT_SECRET: ${INSTAGRAM_CLIENT_SECRET:-}
       TIKTOK_CLIENT_KEY: ${TIKTOK_CLIENT_KEY:-}
       TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
-      # The API always listens on 8000 inside the compose network. API_PORT
-      # changes only the optional host mapping, so a proxy or Dokploy domain
-      # can always target container port 8000.
-      PORT: "8000"
+      # API_CONTAINER_PORT is the port inside the Compose network. API_PORT is
+      # the optional host port. Changing the container port requires a rebuild
+      # because Next bakes the internal API origin into its rewrites.
+      PORT: ${API_CONTAINER_PORT:-8000}
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT:-8000}:${API_CONTAINER_PORT:-8000}"
     volumes:
       - media:/data
     depends_on:
@@ -144,17 +144,18 @@ services:
     build:
       context: ./frontend
       args:
-        # Fixed internal origin baked into Next rewrites. API_PORT only changes
-        # the host mapping, so changing it never requires a web rebuild.
-        API_BASE_URL: http://api:8000
+        # Internal API origin baked into Next rewrites. Keep this equal to
+        # API_CONTAINER_PORT; changing it triggers a web rebuild.
+        API_BASE_URL: http://api:${API_CONTAINER_PORT:-8000}
     restart: unless-stopped
     environment:
-      API_BASE_URL: http://api:8000
-      # Next always listens on 3000 inside the network. WEB_PORT changes only
-      # the optional host mapping; a proxy or Dokploy domain targets 3000.
-      PORT: "3000"
+      API_BASE_URL: http://api:${API_CONTAINER_PORT:-8000}
+      # WEB_CONTAINER_PORT is the port inside the Compose network. WEB_PORT is
+      # the optional host port. A proxy or Dokploy domain targets the container
+      # port, not WEB_PORT.
+      PORT: ${WEB_CONTAINER_PORT:-3000}
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${WEB_PORT:-3000}:${WEB_CONTAINER_PORT:-3000}"
     depends_on:
       api:
         condition: service_healthy

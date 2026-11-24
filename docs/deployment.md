@@ -48,10 +48,10 @@ Dokploy can deploy this repository in either of two ways. The short answer: **ye
 1. In Dokploy, create a **Compose** application and connect `github.com/rahulxdevv/FireClip`.
 2. Use the repository `docker-compose.yml`.
 3. Add `JWT_SECRET` (32+ random bytes) in the environment editor.
-4. Attach your domain to the **web** service with container port `3000`. That port is fixed inside the container. If Dokploy already uses host port `3000`, set `WEB_PORT=3009`; this changes only the published host port, not the domain target. Set `API_PORT=8008` too if host port `8000` is taken.
+4. Attach your domain to the **web** service with container port `WEB_CONTAINER_PORT` (`3000` by default). If Dokploy already uses host port `3000`, set `WEB_PORT=3009`; this changes only the published host port, not the domain target. Set `API_PORT=8008` too if host port `8000` is taken. If you deliberately change `WEB_CONTAINER_PORT`, update the domain port to match and rebuild.
 5. Deploy. The stack starts PostgreSQL, Redis, the API, the worker and the web app automatically.
 
-A 502 from Dokploy usually means the domain points at the wrong container port. The web domain must target container port `3000`, regardless of `WEB_PORT`.
+A 502 from Dokploy usually means the domain points at the wrong container port. The web domain must target `WEB_CONTAINER_PORT` (`3000` by default), regardless of `WEB_PORT`.
 
 For a public production install, also set:
 
@@ -91,7 +91,7 @@ app.example.com {
 }
 ```
 
-The proxy always targets container ports: web `3000`, API `8000`. `WEB_PORT` and `API_PORT` only change the published host ports, not these internal targets. The web app proxies `/api` and `/health`, so the API does not need its own public hostname.
+The proxy targets the container ports: web `3000` and API `8000` by default, or `WEB_CONTAINER_PORT`/`API_CONTAINER_PORT` if you changed them. `WEB_PORT` and `API_PORT` change only the published host ports. The web app proxies `/api` and `/health`, so the API does not need its own public hostname.
 
 Nginx: set `client_max_body_size 4g;` and `proxy_request_buffering off;` for large uploads. Uvicorn already runs with `--proxy-headers`. Set `COOKIE_SECURE=true`, real public URLs and matching CORS origins when TLS is enabled.
 

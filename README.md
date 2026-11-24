@@ -53,7 +53,7 @@ Open **http://localhost:3000** and register - the first account becomes owner of
 | API | http://localhost:8000 |
 | OpenAPI docs | http://localhost:8000/docs |
 
-If 3000 or 8000 is already taken on the host, set `WEB_PORT` and `API_PORT` in `.env` before starting. These change the published host ports only; the web and API containers always listen on 3000 and 8000 internally, so proxies target those fixed ports.
+If 3000 or 8000 is already taken on the host, set `WEB_PORT` and `API_PORT` in `.env` before starting. These change the published host ports only. To change the internal ports too, set `WEB_CONTAINER_PORT` and `API_CONTAINER_PORT`, rebuild, and update the proxy/domain target to the new web container port.
 
 Without Docker (Python 3.10-3.12, Node 20+, FFmpeg and ffprobe on `PATH`):
 

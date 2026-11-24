@@ -52,8 +52,10 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `CAMPAIGN_FEED_LABEL` | `Content Rewards` | Display label for the feed on the Campaigns page. |
 | `ALLOW_MOCK_TRANSCRIPTION` | `false` | Tests/demos only. Mock output is labelled in the UI. |
 | `API_HOST` | `127.0.0.1` | Local API bind address. Use `0.0.0.0` only when exposing it directly. |
-| `API_PORT` | `8000` | API port for the local runner, and the published host port for Compose. The API container always listens on 8000 internally. |
-| `WEB_PORT` | `3000` | Web port for the local runner, and the published host port for Compose. The web container always listens on 3000 internally. |
+| `API_PORT` | `8000` | API port for the local runner, and the published host port for Compose. |
+| `WEB_PORT` | `3000` | Web port for the local runner, and the published host port for Compose. |
+| `API_CONTAINER_PORT` | `8000` | Internal API container port in Compose. Rebuild after changing it, because Next bakes the API origin into its rewrites. |
+| `WEB_CONTAINER_PORT` | `3000` | Internal web container port in Compose. Point the Dokploy domain or reverse proxy at this port. |
 | `PORT` | `10000` | Public web port for the all-in-one Dockerfile and cloud hosts. |
 | `WORKER_CONCURRENCY` | `2` | Jobs processed concurrently by a worker or inline pool. |
 | `RENDER_CONCURRENCY` | `1` | Concurrent FFmpeg encodes per process. |
@@ -78,11 +80,11 @@ OAuth, S3, AI and watermark options are documented inline in [`.env.example`](..
 | Setup | Change it with | Notes |
 | --- | --- | --- |
 | Local dev runner | `API_PORT`, `WEB_PORT` in `.env` | API and Next both read the values. |
-| Docker Compose | `API_PORT`, `WEB_PORT` in `.env` | These change host-published ports only. Containers stay on 3000/8000 internally, so a proxy or Dokploy domain always targets 3000. No rebuild is needed after changing either port. |
+| Docker Compose | `API_PORT`, `WEB_PORT`; optionally `API_CONTAINER_PORT`, `WEB_CONTAINER_PORT` | The first pair changes host-published ports only. The second pair changes the internal listener ports; rebuild after changing the API container port and update the domain/proxy to the new web container port. |
 | Root Dockerfile / Render | `PORT` | Next.js public port. FastAPI stays internal on 8000. |
 | Reverse proxy | Your proxy config | Point the web domain at the web container's port, not directly at the API. |
 
-With the defaults, `http://localhost:3000` is the app and `http://localhost:8000` the API. If you move to `WEB_PORT=3009`, `API_PORT=8008`, the app is on `http://localhost:3009` and the API on `http://localhost:8008`, but inside the stack they still listen on 3000 and 8000. Set `FRONTEND_URL=http://localhost:3009`, `BACKEND_PUBLIC_URL=http://localhost:3009` (OAuth callbacks go through the web proxy) and `CORS_ORIGINS=http://localhost:3009`. In production, use your HTTPS web origin for both URL values.
+With the defaults, `http://localhost:3000` is the app and `http://localhost:8000` the API. If you move to `WEB_PORT=3009`, `API_PORT=8008`, the app is on `http://localhost:3009` and the API on `http://localhost:8008`; the containers can still stay on 3000/8000 internally. Set `FRONTEND_URL=http://localhost:3009`, `BACKEND_PUBLIC_URL=http://localhost:3009` (OAuth callbacks go through the web proxy) and `CORS_ORIGINS=http://localhost:3009`. In production, use your HTTPS web origin for both URL values. If you also change `WEB_CONTAINER_PORT`, the domain must use that new port; if you change `API_CONTAINER_PORT`, rebuild the web image.
 
 ## Performance tuning
 
