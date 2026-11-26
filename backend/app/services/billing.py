@@ -32,17 +32,9 @@ class BillingError(Exception):
         self.status_code = status_code
 
 
+DEFAULT_PLAN = "starter"
+
 PLANS: list[dict] = [
-    {
-        "id": "free",
-        "name": "Free",
-        "tagline": "Try the whole pipeline on one machine.",
-        "monthly": 0,
-        "yearly": 0,
-        "clips": 60,
-        "minutes": 60,
-        "features": ["60 clips / month", "60 render minutes", "Every editing tool included", "No per-seat limits"],
-    },
     {
         "id": "starter",
         "name": "Starter",
@@ -78,11 +70,13 @@ PLAN_INDEX = {plan["id"]: plan for plan in PLANS}
 
 
 def plan_limits(plan: str) -> tuple[int, int]:
-    entry = PLAN_INDEX.get(plan, PLAN_INDEX["free"])
+    entry = PLAN_INDEX.get(plan, PLAN_INDEX[DEFAULT_PLAN])
     return int(entry["clips"]), int(entry["minutes"])
 
 
 def apply_plan(workspace: Workspace, plan: str) -> None:
+    if plan not in PLAN_INDEX:
+        plan = DEFAULT_PLAN
     clips, minutes = plan_limits(plan)
     workspace.plan = plan
     workspace.monthly_clip_limit = clips
@@ -196,8 +190,8 @@ def ensure_customer(db: Session, workspace: Workspace, email: str) -> str:
 def create_checkout(
     db: Session, workspace: Workspace, email: str, plan: str, interval: str
 ) -> str:
-    if plan not in PLAN_INDEX or plan == "free":
-        raise BillingError("Choose a paid plan to continue")
+    if plan not in PLAN_INDEX:
+        raise BillingError("Choose a plan to continue")
     if interval not in {"month", "year"}:
         raise BillingError("Billing interval must be month or year")
     if not settings.stripe_webhook_secret:
@@ -305,8 +299,8 @@ def sync_subscription(db: Session, workspace: Workspace, subscription: dict) -> 
         price = ((items[0] or {}).get("price") or {}).get("id", "")
     plan = plan_for_price(price)
     if subscription.get("status") in {"canceled", "unpaid", "incomplete_expired"}:
-        # A finished subscription must not keep paid limits.
-        apply_plan(workspace, "free")
+        # A finished subscription drops to the entry plan.
+        apply_plan(workspace, DEFAULT_PLAN)
     elif plan:
         apply_plan(workspace, plan)
     db.commit()

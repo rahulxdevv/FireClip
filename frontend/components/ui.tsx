@@ -367,25 +367,34 @@ export function Switch({
   disabled?: boolean;
 }) {
   return (
-    <label className={cn("inline-flex cursor-pointer items-center gap-2.5", disabled && "opacity-50")}>
-      <button
-        type="button"
+    <label
+      className={cn(
+        "inline-flex items-center gap-2.5",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+      )}
+    >
+      <input
+        type="checkbox"
         role="switch"
-        aria-checked={checked}
+        checked={checked}
         disabled={disabled}
-        onClick={() => onCheckedChange(!checked)}
+        onChange={(event) => onCheckedChange(event.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
         className={cn(
-          "relative h-5 w-9 rounded-full border transition-colors",
-          checked ? "border-flame-500/50 bg-flame-500/25" : "border-paper/10 bg-ink-750",
+          "relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-flame-500",
+          checked ? "border-flame-500 bg-flame-500" : "border-paper/15 bg-ink-700",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-3.5 w-3.5 rounded-full transition-transform",
-            checked ? "translate-x-[18px] bg-flame-500" : "translate-x-0.5 bg-faint",
+            "absolute left-[2px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full transition-transform duration-150",
+            checked ? "translate-x-[18px] bg-white" : "translate-x-0 bg-[#9b9bb2]",
           )}
         />
-      </button>
+      </span>
       {label ? <span className="text-[13px] text-muted">{label}</span> : null}
     </label>
   );

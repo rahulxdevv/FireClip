@@ -32,9 +32,9 @@
   --color-cream: #f7f6ff;
   --color-mist: #eef0ff;
 
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
-  --font-display: var(--font-manrope), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
 
   /* Shape lock: controls 10, cards 16, chips 999. Nothing else. */
   --radius-control: 10px;
@@ -126,11 +126,13 @@ input:disabled {
 *:focus-visible {
   outline: 2px solid var(--color-flame-500);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
-button:not(:disabled):active {
-  transform: translateY(1px);
+input[type="checkbox"]:not(.sr-only),
+input[type="radio"]:not(.sr-only) {
+  accent-color: var(--color-flame-500);
+  width: 15px;
+  height: 15px;
 }
 
 ::-webkit-scrollbar {

@@ -1,15 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { ToastViewport } from "@/components/toast";
-
-const sans = localFont({
-  src: "./fonts/manrope-var.woff2",
-  variable: "--font-manrope",
-  weight: "300 800",
-  display: "swap",
-  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
-});
 
 export const metadata: Metadata = {
   title: {
@@ -37,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={sans.variable}>
+    <html lang="en" className={GeistSans.variable + " " + GeistMono.variable}>
       <body className="min-h-screen bg-ink-950 text-paper antialiased">
         {children}
         <ToastViewport />

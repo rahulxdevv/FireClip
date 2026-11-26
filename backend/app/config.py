@@ -135,7 +135,7 @@ class Settings:
     mail_from: str = os.getenv("MAIL_FROM", "no-reply@fireclip.local")
     mail_from_name: str = os.getenv("MAIL_FROM_NAME", "FireClip")
 
-    # Billing (Stripe). Optional: self-hosted installs can stay on the free plan.
+    # Billing (Stripe). Optional: self-hosted installs keep local plan limits.
     stripe_secret_key: str = os.getenv("STRIPE_SECRET_KEY", "")
     stripe_webhook_secret: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
     stripe_portal_configuration: str = os.getenv("STRIPE_PORTAL_CONFIGURATION_ID", "")
@@ -234,8 +234,8 @@ class Settings:
     # Limits
     rate_limit_auth_per_minute: int = _int("RATE_LIMIT_AUTH_PER_MINUTE", 20)
     rate_limit_api_per_minute: int = _int("RATE_LIMIT_API_PER_MINUTE", 240)
-    plan_clip_limit: int = _int("PLAN_CLIP_LIMIT", 500)
-    plan_render_minutes: int = _int("PLAN_RENDER_MINUTES", 600)
+    plan_clip_limit: int = _int("PLAN_CLIP_LIMIT", 300)
+    plan_render_minutes: int = _int("PLAN_RENDER_MINUTES", 300)
 
     def __post_init__(self) -> None:
         if not self.jwt_secret:

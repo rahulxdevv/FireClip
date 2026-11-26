@@ -17,7 +17,7 @@ import { Alert, Badge, Button, PageSkeleton, Panel, PanelHeader } from "@/compon
 import { JobStatusBadge } from "@/components/status";
 import { useApi } from "@/lib/hooks";
 import { useSessionStore } from "@/lib/stores";
-import { formatBytes, formatDuration, relativeTime, scoreTone } from "@/lib/format";
+import { formatDuration, relativeTime, scoreTone } from "@/lib/format";
 import type { Dashboard } from "@/lib/types";
 
 const CLIP_TONE: Record<string, "mint" | "rose" | "neutral"> = {
@@ -47,12 +47,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate text-[12px] text-faint">{workspace?.name || "Workspace"}</p>
-          <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.035em] text-paper">
-            Welcome back, {firstName}
-          </h1>
-        </div>
+        <h1 className="min-w-0 truncate text-[26px] font-semibold leading-tight tracking-[-0.035em] text-paper">
+          Welcome back, {firstName}
+        </h1>
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/import">
             <Button variant="outline" size="sm">
@@ -75,10 +72,7 @@ export default function DashboardPage() {
             <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-flame-500/12 text-flame-400">
               <Sparkles className="h-4 w-4" />
             </span>
-            <div>
-              <p className="text-[13px] font-medium text-paper">Start with one recording.</p>
-              <p className="text-[12px] text-faint">Upload a file or paste a YouTube, Twitch or Kick link.</p>
-            </div>
+            <p className="text-[13px] font-medium text-paper">Start with one recording.</p>
           </div>
           <Link href="/upload">
             <Button size="sm">
@@ -90,34 +84,10 @@ export default function DashboardPage() {
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric
-          icon={Film}
-          label="Source videos"
-          value={counts.videos}
-          hint={formatBytes(data.storage_bytes) + " stored"}
-          href="/videos"
-        />
-        <Metric
-          icon={Flame}
-          label="Clips"
-          value={counts.clips}
-          hint={counts.approved_clips + " approved"}
-          href="/clips"
-        />
-        <Metric
-          icon={Sparkles}
-          label="In pipeline"
-          value={counts.processing}
-          hint={counts.processing > 0 ? "Workers running" : "Queue idle"}
-          href="/renders"
-        />
-        <Metric
-          icon={CalendarClock}
-          label="Published"
-          value={counts.published}
-          hint={counts.scheduled_posts + " scheduled"}
-          href="/schedule"
-        />
+        <Metric icon={Film} label="Source videos" value={counts.videos} href="/videos" />
+        <Metric icon={Flame} label="Clips" value={counts.clips} href="/clips" />
+        <Metric icon={Sparkles} label="In pipeline" value={counts.processing} href="/renders" />
+        <Metric icon={CalendarClock} label="Published" value={counts.published} href="/schedule" />
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[1.6fr_1fr]">
@@ -125,7 +95,6 @@ export default function DashboardPage() {
           <Panel>
             <PanelHeader
               title="Top clips"
-              description={data.recent_clips.length > 0 ? "Ranked by current score." : undefined}
               action={
                 <Link href="/clips" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
                   Review all
@@ -134,7 +103,7 @@ export default function DashboardPage() {
             />
             {data.recent_clips.length === 0 ? (
               <p className="px-5 py-9 text-center text-[12.5px] text-faint">
-                Clips appear after the first analysis.
+                No clips yet.
               </p>
             ) : (
               <div className="divide-y divide-white/[0.05]">
@@ -175,7 +144,7 @@ export default function DashboardPage() {
               }
             />
             {data.recent_videos.length === 0 ? (
-              <p className="px-5 py-9 text-center text-[12.5px] text-faint">Nothing uploaded yet.</p>
+              <p className="px-5 py-9 text-center text-[12.5px] text-faint">No videos yet.</p>
             ) : (
               <div className="divide-y divide-white/[0.05]">
                 {data.recent_videos.slice(0, 5).map((video) => (
@@ -292,13 +261,11 @@ function Metric({
   icon: Icon,
   label,
   value,
-  hint,
   href,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
-  hint: string;
   href: string;
 }) {
   return (
@@ -307,10 +274,9 @@ function Metric({
         <span className="text-[12px] text-muted">{label}</span>
         <Icon className="h-3.5 w-3.5 text-ink-500 transition-colors group-hover:text-flame-400" />
       </div>
-      <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-paper">
+      <p className="mt-3 text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-paper">
         {value}
       </p>
-      <p className="mt-1.5 text-[11px] text-faint">{hint}</p>
     </Link>
   );
 }

@@ -4,6 +4,11 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${POSTGRES_CPUS:-0.50}"
+          memory: "${POSTGRES_MEMORY:-512M}"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fireclip}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fireclip}
@@ -19,6 +24,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${REDIS_CPUS:-0.25}"
+          memory: "${REDIS_MEMORY:-256M}"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
@@ -32,6 +42,11 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${API_CPUS:-1.0}"
+          memory: "${API_MEMORY:-1G}"
     # The web proxy reaches the API by this name. "api" alone is ambiguous:
     # several Compose projects sharing one Docker network (Dokploy attaches
     # every app to dokploy-network) can each own an "api" container, and the
@@ -111,14 +126,14 @@ services:
       S3_PREFIX: ${S3_PREFIX:-fireclip}
       MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-4096}
-      MIN_FREE_DISK_GB: ${MIN_FREE_DISK_GB:-2}
-      MAX_WORKSPACE_STORAGE_GB: ${MAX_WORKSPACE_STORAGE_GB:-0}
+      MIN_FREE_DISK_GB: ${MIN_FREE_DISK_GB:-5}
+      MAX_WORKSPACE_STORAGE_GB: ${MAX_WORKSPACE_STORAGE_GB:-50}
       STATIC_SCREEN_FILTER: ${STATIC_SCREEN_FILTER:-true}
       STATIC_SCREEN_THRESHOLD: ${STATIC_SCREEN_THRESHOLD:-1.0}
       STATIC_SCREEN_MIN_SECONDS: ${STATIC_SCREEN_MIN_SECONDS:-6}
       STATIC_SCREEN_MAX_OVERLAP: ${STATIC_SCREEN_MAX_OVERLAP:-0.35}
-      PLAN_CLIP_LIMIT: ${PLAN_CLIP_LIMIT:-500}
-      PLAN_RENDER_MINUTES: ${PLAN_RENDER_MINUTES:-600}
+      PLAN_CLIP_LIMIT: ${PLAN_CLIP_LIMIT:-300}
+      PLAN_RENDER_MINUTES: ${PLAN_RENDER_MINUTES:-300}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
       HWACCEL: ${HWACCEL:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -147,6 +162,11 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${WORKER_CPUS:-2.0}"
+          memory: "${WORKER_MEMORY:-4G}"
     command: ["worker"]
     environment: *backend_env
     volumes:
@@ -164,6 +184,11 @@ services:
         # the unique alias from the api service, not the generic "api".
         API_BASE_URL: http://fireclip-api:${API_CONTAINER_PORT:-8000}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${WEB_CPUS:-0.75}"
+          memory: "${WEB_MEMORY:-768M}"
     environment:
       API_BASE_URL: http://fireclip-api:${API_CONTAINER_PORT:-8000}
       # WEB_CONTAINER_PORT is the port inside the Compose network. WEB_PORT is

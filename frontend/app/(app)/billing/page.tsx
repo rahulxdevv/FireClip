@@ -58,7 +58,6 @@ export default function BillingPage() {
   const clipPct = Math.min(100, (data.usage.clips_this_month / Math.max(1, data.limits.clips_per_month)) * 100);
   const renderPct = Math.min(100, (data.usage.render_minutes_this_month / Math.max(1, data.limits.render_minutes_per_month)) * 100);
   const paid =
-    data.plan !== "free" &&
     data.status === "active" &&
     (Boolean(data.renews_at) || data.invoices.length > 0);
   const isAdmin = workspace?.role === "owner" || workspace?.role === "admin";
@@ -67,7 +66,7 @@ export default function BillingPage() {
     <div className="mx-auto max-w-5xl">
       <PageHeader
         title="Plan & usage"
-        description="Limits and usage here come from real pipeline records. Checkout only appears when a payment provider is configured on this instance."
+        description="Plan, usage and invoices for this workspace."
         actions={
           <Badge tone="flame">
             {data.plan_name}, {data.status}
@@ -81,9 +80,10 @@ export default function BillingPage() {
             <div>
               <p className="text-[11px] text-faint">Current plan</p>
               <p className="mt-1 text-[24px] font-semibold">{data.plan_name}</p>
-              <p className="mt-0.5 text-[11.5px] capitalize text-faint">
+              <p className="mt-0.5 text-[11.5px] text-faint">
                 {paid
-                  ? data.interval + "ly billing" + (data.renews_at ? ", renews " + new Date(data.renews_at).toLocaleDateString() : "")
+                  ? (data.interval === "year" ? "Annual billing" : "Monthly billing") +
+                    (data.renews_at ? ", renews " + new Date(data.renews_at).toLocaleDateString() : "")
                   : data.payment_provider.available
                     ? "No active subscription"
                     : "Self-hosted, no payment provider connected"}
@@ -153,7 +153,7 @@ export default function BillingPage() {
       <Panel className="mt-5">
         <PanelHeader
           title="Plans"
-          description="Switch at any time. Existing work stays in the workspace."
+          description="Switch at any time."
           action={
             <div className="flex rounded-[var(--radius-control)] border border-paper/10 p-0.5">
               {(["month", "year"] as const).map((option) => (
@@ -171,7 +171,7 @@ export default function BillingPage() {
             </div>
           }
         />
-        <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 p-5 sm:grid-cols-3">
           {data.plans.map((plan) => {
             const current = plan.id === data.plan;
             const price = interval === "month" ? plan.monthly : plan.yearly;
@@ -191,8 +191,8 @@ export default function BillingPage() {
                   {current ? <Badge tone="flame">current</Badge> : null}
                 </div>
                 <p className="mt-4 font-mono text-[24px] font-semibold">
-                  {price === 0 ? "Free" : "$" + price}
-                  {price !== 0 ? <span className="text-[11px] font-normal text-faint">/{interval}</span> : null}
+                  ${price}
+                  <span className="text-[11px] font-normal text-faint">/{interval}</span>
                 </p>
                 <ul className="mt-3 flex-1 space-y-1.5 text-[11px] text-muted">
                   {plan.features.map((feature) => (
@@ -205,11 +205,11 @@ export default function BillingPage() {
                   size="sm"
                   variant={current ? "ghost" : "outline"}
                   className="mt-4 w-full"
-                  disabled={current || plan.id === "free" || !data.payment_provider.available || !isAdmin}
+                  disabled={current || !data.payment_provider.available || !isAdmin}
                   loading={busy === plan.id}
                   onClick={() => checkout(plan.id)}
                 >
-                  {current ? "Current plan" : plan.id === "free" ? "Included" : "Choose " + plan.name}
+                  {current ? "Current plan" : "Choose " + plan.name}
                 </Button>
               </div>
             );

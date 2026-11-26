@@ -288,7 +288,7 @@ def billing_overview(ctx: RequestContext = Depends(get_context)):
         .order_by(BillingInvoice.created_at.desc())
         .limit(12)
     ).all()
-    plan = billing.PLAN_INDEX.get(workspace.plan, billing.PLAN_INDEX["free"])
+    plan = billing.PLAN_INDEX.get(workspace.plan, billing.PLAN_INDEX[billing.DEFAULT_PLAN])
     return {
         "plan": workspace.plan,
         "plan_name": plan["name"],

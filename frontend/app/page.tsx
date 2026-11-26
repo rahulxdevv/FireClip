@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CalendarClock,
@@ -119,8 +120,24 @@ function Wordmark({ tone = "night" }: { tone?: "night" | "white" }) {
 }
 
 function SiteHeader() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-hair/70 bg-white/80 backdrop-blur-xl">
+    <header
+      className={
+        "sticky top-0 z-50 border-b transition-colors duration-300 " +
+        (scrolled
+          ? "border-hair/70 bg-[#fbfaff]/90 backdrop-blur-xl"
+          : "border-transparent bg-transparent")
+      }
+    >
       <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:px-6">
         <Link href="/" aria-label="FireClip home" className="shrink-0">
           <Wordmark />
@@ -147,7 +164,7 @@ function SiteHeader() {
             href="/register"
             className="inline-flex items-center gap-1.5 rounded-full bg-night px-4 py-2 text-[13.5px] font-semibold text-white transition-colors hover:bg-[#1b1b36]"
           >
-            Start free
+            Get started
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -187,7 +204,7 @@ function Hero() {
               href="/register"
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-flame-600 px-6 text-[14.5px] font-semibold text-white transition-colors hover:bg-[#4a37e0] sm:w-auto"
             >
-              Start free
+              Get started
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
@@ -514,7 +531,7 @@ function ClosingCta() {
               href="/register"
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-5 text-[14px] font-semibold text-night transition-colors hover:bg-cream sm:w-auto"
             >
-              Start free
+              Get started
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
@@ -545,7 +562,7 @@ function SiteFooter() {
           <a href="#features" className="transition-colors hover:text-night">Features</a>
           <Link href="/docs" className="transition-colors hover:text-night">Docs</Link>
           <Link href="/login" className="transition-colors hover:text-night">Sign in</Link>
-          <Link href="/register" className="transition-colors hover:text-night">Start free</Link>
+          <Link href="/register" className="transition-colors hover:text-night">Get started</Link>
         </div>
       </div>
       <div className="mx-auto w-full max-w-[1120px] border-t border-hair px-5 py-5 text-[11.5px] text-[#a3a5b8] sm:px-6">

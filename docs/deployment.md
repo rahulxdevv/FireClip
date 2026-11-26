@@ -27,6 +27,28 @@ Before you rely on it:
 
 For a production deployment with a separate worker, use Docker Compose instead. The all-in-one image is intentionally a low-friction demo, not the recommended scale-out topology.
 
+## Resource limits
+
+Compose limits every container by default so the stack cannot take the whole VPS: Postgres 0.5 CPU / 512 MB, Redis 0.25 CPU / 256 MB, API 1 CPU / 1 GB, worker 2 CPU / 4 GB, web 0.75 CPU / 768 MB. Change any of them in `.env`:
+
+```dotenv
+WORKER_CPUS=3.0
+WORKER_MEMORY=6G
+POSTGRES_MEMORY=1G
+```
+
+The worker cap is the one that matters most for transcription and FFmpeg. Keep it above the memory your Whisper model needs, or lower `WHISPER_MODEL` and `WORKER_CONCURRENCY`. Media is also capped per workspace at 50 GB (`MAX_WORKSPACE_STORAGE_GB`) and uploads at 4 GB (`MAX_UPLOAD_MB`).
+
+## Admin account
+
+The first account is the owner of its workspace. To promote another existing account after it has registered:
+
+```bash
+docker compose exec api python -m app.cli make-admin you@example.com
+```
+
+The command defaults to the `owner` role, which is the highest level. Add `--workspace <slug>` to change one workspace only, or `--role admin` to grant admin without ownership.
+
 ## Any VPS with Docker
 
 ```bash

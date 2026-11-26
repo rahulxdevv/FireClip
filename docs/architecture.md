@@ -55,7 +55,7 @@ The same task callables run through ARQ in Docker and inline locally, so the UI 
 | Live | Discover public creators, record YouTube/Twitch/Kick live streams via yt-dlp; streamer roster, optional auto-record and campaign auto-clip | Ready / environment |
 | Schedule | One timeline for queued, scheduled, published and failed posts, with cancel, retry and direct post links | Ready |
 | Dashboard | Usage, processing jobs, recent activity, notifications | Ready |
-| Billing | Enforced clip/render limits, usage/storage metering, free/starter/studio/agency catalog, Stripe checkout and portal | Keys |
+| Billing | Enforced clip/render limits, usage/storage metering, starter/studio/agency catalog, Stripe checkout and portal | Keys |
 | Payments | Stripe Checkout, customer portal, invoices, signed webhook sync | Keys |
 | Email | SMTP verification, password reset and workspace invitations, with logged dev links | Keys / optional |
 | Webhooks | HMAC-signed events, delivery log, test endpoint, SSRF guard | Ready |

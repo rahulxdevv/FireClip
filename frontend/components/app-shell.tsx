@@ -92,7 +92,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const setSession = useSessionStore((state) => state.setSession);
   const clear = useSessionStore((state) => state.clear);
   const user = useSessionStore((state) => state.user);
-  const firstName = (user?.name || user?.email || "there").trim().split(/\s+/)[0].split("@")[0];
 
   React.useEffect(() => {
     let active = true;
@@ -168,15 +167,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <div className="relative px-4 pb-4 pt-1">
-          <p className="text-[11.5px] text-faint">Welcome back,</p>
-          <p className="mt-0.5 truncate text-[18px] font-semibold leading-tight tracking-[-0.03em] text-paper">
-            {firstName}
-          </p>
-          <p className="mt-0.5 truncate text-[11px] text-faint">{user?.email}</p>
-        </div>
-
-        <div className="relative px-3 pb-1">
+        <div className="relative px-3 pb-1 pt-4">
           <WorkspaceSwitcher />
         </div>
 
@@ -234,7 +225,6 @@ function NavLink({
     >
       <Icon className={cn("h-[15px] w-[15px] shrink-0", active ? "text-flame-400" : "text-faint group-hover:text-muted")} />
       <span className="truncate">{label}</span>
-      {active ? <span className="ml-auto h-1 w-1 rounded-full bg-flame-400" aria-hidden /> : null}
     </Link>
   );
 }
@@ -259,10 +249,8 @@ function WorkspaceSwitcher() {
           <span className="block truncate text-[12.5px] font-semibold text-paper">
             {current?.name || "No workspace"}
           </span>
-          <span className="block truncate text-[11px] text-faint">
-            {current
-              ? current.role.charAt(0).toUpperCase() + current.role.slice(1) + ", " + current.plan + " plan"
-              : "Create one"}
+          <span className="block truncate text-[11px] capitalize text-faint">
+            {current ? current.role : "Create one"}
           </span>
         </span>
         <ChevronDown className="h-3.5 w-3.5 text-faint" />

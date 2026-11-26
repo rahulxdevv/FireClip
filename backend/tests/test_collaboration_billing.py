@@ -275,8 +275,8 @@ def test_billing_plans_and_unconfigured_checkout(client: TestClient, account: di
     response = client.get("/api/billing/plans", headers=account["headers"])
     assert response.status_code == 200
     body = response.json()
-    assert [plan["id"] for plan in body["plans"]] == ["free", "starter", "studio", "agency"]
-    assert body["current"]["plan"]
+    assert [plan["id"] for plan in body["plans"]] == ["starter", "studio", "agency"]
+    assert body["current"]["plan"] == "starter"
     if not body["provider"]["available"]:
         checkout = client.post(
             "/api/billing/checkout",

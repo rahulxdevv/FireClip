@@ -39,14 +39,14 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `WHISPER_MODEL` | `base` | `tiny` for low-memory hosts, `small`/`medium` for quality. |
 | `STORAGE_BACKEND` | `local` | `local` or `s3`. |
 | `MAX_UPLOAD_MB` | `4096` | Enforced by the API; match your proxy body limit. |
-| `MIN_FREE_DISK_GB` | `2` | Refuse uploads and renders below this much free local media space. |
-| `MAX_WORKSPACE_STORAGE_GB` | `0` | Optional per-workspace media cap; `0` disables it. |
+| `MIN_FREE_DISK_GB` | `2` (Compose: `5`) | Refuse uploads and renders below this much free local media space. |
+| `MAX_WORKSPACE_STORAGE_GB` | `0` (Compose: `50`) | Per-workspace media cap; `0` disables it. |
 | `STATIC_SCREEN_FILTER` | `true` | Skip frozen screens, slates and ad cards when proposing clips. |
 | `STATIC_SCREEN_THRESHOLD` | `1.0` | Motion threshold for still-screen detection. |
 | `STATIC_SCREEN_MIN_SECONDS` | `6` | Minimum still duration before a range is skipped. |
 | `STATIC_SCREEN_MAX_OVERLAP` | `0.35` | Skip a candidate when this share of it is still. |
-| `PLAN_CLIP_LIMIT` | `500` | Default monthly clip allowance for new workspaces. |
-| `PLAN_RENDER_MINUTES` | `600` | Default monthly render-minute allowance. |
+| `PLAN_CLIP_LIMIT` | `300` | Monthly clip allowance for new workspaces; overrides the entry plan. |
+| `PLAN_RENDER_MINUTES` | `300` | Monthly render-minute allowance for new workspaces; overrides the entry plan. |
 | `REQUIRE_EMAIL_VERIFICATION` | `false` | Block sign-in until the email link is confirmed. Requires SMTP. |
 | `SMTP_HOST`, `SMTP_PORT` | empty, `587` | Transactional email for verification, reset and invitations. |
 | `SMTP_USERNAME`, `SMTP_PASSWORD` | empty | SMTP credentials; STARTTLS or implicit SSL is supported. |
@@ -71,7 +71,7 @@ Copy [`.env.example`](../.env.example) to `.env`. The essentials:
 | `RENDER_X264_PRESET` | `veryfast` | `ultrafast` or `superfast` for slower hardware. |
 | `LOG_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING` or `ERROR`. |
 
-OAuth, S3, AI and watermark options are documented inline in [`.env.example`](../.env.example).
+Compose caps each container with `POSTGRES_CPUS`/`POSTGRES_MEMORY`, `REDIS_CPUS`/`REDIS_MEMORY`, `API_CPUS`/`API_MEMORY`, `WORKER_CPUS`/`WORKER_MEMORY` and `WEB_CPUS`/`WEB_MEMORY`. Defaults are listed in `.env.example`; they do not affect a non-Docker run. OAuth, S3, AI and watermark options are documented inline in [`.env.example`](../.env.example).
 
 ### Email, sharing and billing
 

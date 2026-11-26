@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./frontend/public/icon.svg" width="72" height="72" alt="FireClip logo" />
+  <img src="./frontend/public/icon-512.png" width="72" height="72" alt="FireClip logo" />
 </p>
 
 <h1 align="center">FireClip</h1>
@@ -54,6 +54,20 @@ Open **http://localhost:3000** and register - the first account becomes owner of
 | OpenAPI docs | http://localhost:8000/docs |
 
 If 3000 or 8000 is already taken on the host, set `WEB_PORT` and `API_PORT` in `.env` before starting. These change the published host ports only. To change the internal ports too, set `WEB_CONTAINER_PORT` and `API_CONTAINER_PORT`, rebuild, and update the proxy/domain target to the new web container port.
+
+### Resource limits
+
+Docker Compose caps every container so one stack cannot take the whole VPS. Defaults are 0.5 CPU and 512 MB for Postgres, 0.25 CPU and 256 MB for Redis, 1 CPU and 1 GB for the API, 2 CPU and 4 GB for the worker, and 0.75 CPU and 768 MB for the web app. Raise any of them in `.env` (`POSTGRES_MEMORY`, `WORKER_CPUS`, and so on) when the host has room. Workspace media defaults to a 50 GB cap per workspace; set `MAX_WORKSPACE_STORAGE_GB=0` to remove it.
+
+### Make an account admin
+
+The first account is already the owner of its workspace. To promote another existing account, run the operator command inside the API container:
+
+```bash
+docker compose exec api python -m app.cli make-admin you@example.com
+```
+
+Add `--workspace <slug>` to limit the change to one workspace. The default role is `owner`, the highest level; pass `--role admin` for admin instead.
 
 Without Docker (Python 3.10-3.12, Node 20+, FFmpeg and ffprobe on `PATH`):
 
@@ -156,7 +170,7 @@ Each stage is a real background job, not a request handler, so a long source nev
 | Teams | Workspaces with owner/admin/editor/viewer roles, email invitations, audit log |
 | Review | Threaded clip comments with resolve state, bulk approve/reject/merge/delete |
 | Sharing | Password-protected, expiring public links for any export, with view counts |
-| Billing | Free/starter/studio/agency plans, Stripe Checkout and portal, invoices, webhook sync |
+| Billing | Starter/studio/agency plans, Stripe Checkout and portal, invoices, webhook sync |
 | Email | SMTP verification, password reset and invitations; falls back to logged links when unconfigured |
 | Webhooks | HMAC-signed event delivery with retries, delivery log and test endpoint |
 
