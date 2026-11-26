@@ -53,7 +53,7 @@ export default function PublicSharePage() {
 
   return (
     <div className="min-h-screen bg-ink-950">
-      <header className="border-b border-white/8">
+      <header className="border-b border-paper/8">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
           <Logo size={30} />
           <span className="text-[11.5px] font-semibold text-flame-400">Shared clip</span>
@@ -72,7 +72,7 @@ export default function PublicSharePage() {
           </div>
         ) : share?.locked ? (
           <div className="mx-auto max-w-md pt-10">
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-ink-900 text-flame-500">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-paper/10 bg-ink-900 text-flame-500">
               <Lock className="h-5 w-5" />
             </div>
             <h1 className="text-[24px] font-semibold tracking-tight">This clip is protected</h1>
@@ -124,7 +124,7 @@ export default function PublicSharePage() {
               <div>
                 <h1 className="display text-[26px] text-paper">{share.title || share.filename}</h1>
               </div>
-              <dl className="space-y-2 border-y border-white/8 py-4 text-[12px]">
+              <dl className="space-y-2 border-y border-paper/8 py-4 text-[12px]">
                 {share.duration_ms ? (
                   <div className="flex justify-between"><dt className="text-faint">Duration</dt><dd className="font-mono text-muted">{formatDuration(share.duration_ms, true)}</dd></div>
                 ) : null}

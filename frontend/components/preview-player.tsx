@@ -83,7 +83,7 @@ export function PreviewPlayer({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-card)] border border-paper/10 bg-black",
+        "relative overflow-hidden rounded-[var(--radius-card)] border border-white/10 bg-black",
         aspect === "9:16" ? "aspect-[9/16]" : aspect === "1:1" ? "aspect-square" : aspect === "4:5" ? "aspect-[4/5]" : "aspect-video",
         className,
       )}
@@ -111,7 +111,7 @@ export function PreviewPlayer({
         }}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center bg-gradient-to-b from-black/70 to-transparent px-3 py-2">
-        <span className="text-[10px] text-paper/70">
+        <span className="text-[10px] text-white/70">
           {formatMs(Math.max(0, trimEndMs - trimStartMs))} clip, {playing ? "preview" : "paused"}
         </span>
       </div>
@@ -120,7 +120,7 @@ export function PreviewPlayer({
           <span
             className="max-w-[92%] text-center font-bold leading-tight"
             style={{
-              color: captionStyle.headingColor || "var(--color-paper)",
+              color: captionStyle.headingColor || "#ffffff",
               fontSize: `clamp(11px, ${Math.max(1, (captionStyle.headingSize || 54) / 32)}vw, ${Math.max(16, Math.round((captionStyle.headingSize || 54) * 0.34))}px)`,
               textShadow: "0 1px 4px rgba(0,0,0,0.9)",
               textTransform: captionStyle.headingUppercase ? "uppercase" : "none",
@@ -135,7 +135,7 @@ export function PreviewPlayer({
           <span
             className="max-w-[92%] rounded px-2 py-1 text-center font-bold leading-tight"
             style={{
-              color: captionStyle?.textColor || "var(--color-paper)",
+              color: captionStyle?.textColor || "#ffffff",
               backgroundColor:
                 captionStyle?.box && captionStyle.boxColor
                   ? hexToRgba(captionStyle.boxColor, captionStyle.boxOpacity ?? 0.55)

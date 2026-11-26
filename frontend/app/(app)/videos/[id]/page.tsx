@@ -283,7 +283,7 @@ export default function VideoDetailPage() {
           </div>
           <div className="flex max-w-full flex-wrap gap-1.5">
             {(data.static_ranges || []).slice(0, 8).map((range) => (
-              <span key={`${range.start_ms}-${range.end_ms}`} className="rounded-md border border-white/8 px-2 py-1 font-mono text-[10px] text-faint">
+              <span key={`${range.start_ms}-${range.end_ms}`} className="rounded-md border border-paper/8 px-2 py-1 font-mono text-[10px] text-faint">
                 {formatDuration(range.start_ms, true)}-{formatDuration(range.end_ms, true)}
               </span>
             ))}
@@ -303,7 +303,7 @@ export default function VideoDetailPage() {
                 className="mx-auto max-h-[520px] w-full bg-black"
               />
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/7 px-4 py-2.5 text-[11px] text-faint">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-paper/7 px-4 py-2.5 text-[11px] text-faint">
               <span className="font-mono">
                 {data.fps ? `${data.fps.toFixed(1)} fps` : ""} {data.original_filename || ""}
               </span>
@@ -392,7 +392,7 @@ export default function VideoDetailPage() {
                   </div>
                 ) : transcript.data ? (
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 border-b border-white/7 px-4 py-2.5">
+                    <div className="flex flex-wrap items-center gap-2 border-b border-paper/7 px-4 py-2.5">
                       <Badge tone="neutral">{transcript.data.language}</Badge>
                       <Badge tone="neutral">{transcript.data.engine}</Badge>
                       <span className="text-[10px] text-faint">
@@ -406,7 +406,7 @@ export default function VideoDetailPage() {
                               onClick={() =>
                                 renameSpeaker(speaker.id, speaker.display_name || speaker.label)
                               }
-                              className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9.5px] text-muted hover:text-paper"
+                              className="rounded border border-paper/10 px-1.5 py-0.5 font-mono text-[9.5px] text-muted hover:text-paper"
                               title="Rename speaker"
                             >
                               {speaker.display_name || speaker.label}
@@ -415,11 +415,11 @@ export default function VideoDetailPage() {
                         </div>
                       ) : null}
                     </div>
-                    <div className="divide-y divide-white/5">
+                    <div className="divide-y divide-paper/5">
                       {transcript.data.segments.map((segment) => {
                         const speaker = transcript.data?.speakers.find((s) => s.id === segment.speaker_id);
                         return (
-                          <div key={segment.id} className="group flex gap-3 px-4 py-2.5 hover:bg-white/2">
+                          <div key={segment.id} className="group flex gap-3 px-4 py-2.5 hover:bg-paper/2">
                             <button
                               onClick={() => seek(segment.start_ms)}
                               className="mt-0.5 shrink-0 font-mono text-[10px] text-flame-400 hover:text-flame-500"
@@ -492,7 +492,7 @@ export default function VideoDetailPage() {
               />
             </div>
             {activeJob ? (
-              <div className="border-t border-white/7 px-4 py-3">
+              <div className="border-t border-paper/7 px-4 py-3">
                 <InlineProgress
                   value={activeJob.progress}
                   label={`${activeJob.kind}, ${activeJob.stage}`}
@@ -504,7 +504,7 @@ export default function VideoDetailPage() {
 
           <Panel>
             <PanelHeader title="Technical details" />
-            <dl className="divide-y divide-white/6 text-[11.5px]">
+            <dl className="divide-y divide-paper/6 text-[11.5px]">
               {[
                 ["Duration", formatDuration(data.duration_seconds)],
                 ["Resolution", `${data.width}×${data.height}`],
@@ -535,7 +535,7 @@ export default function VideoDetailPage() {
             {(jobs.data || []).length === 0 ? (
               <p className="px-4 py-6 text-center text-[12px] text-faint">No jobs recorded.</p>
             ) : (
-              <div className="max-h-64 divide-y divide-white/6 overflow-y-auto">
+              <div className="max-h-64 divide-y divide-paper/6 overflow-y-auto">
                 {(jobs.data || []).slice(0, 8).map((job) => (
                   <div key={job.id} className="px-4 py-2.5">
                     <div className="flex items-center justify-between gap-2">
@@ -624,7 +624,7 @@ function PipelineStep({
             ? "border-mint/40 bg-mint/10 text-mint"
             : active
               ? "border-flame-500/50 bg-flame-500/10 text-flame-400"
-              : "border-white/12 text-faint"
+              : "border-paper/12 text-faint"
         }`}
       >
         {done ? "✓" : active ? "•" : ""}
@@ -768,7 +768,7 @@ function AnalyzeDialog({
                 className={`rounded-lg border py-2 text-[11.5px] transition-colors ${
                   duration === seconds
                     ? "border-flame-500/50 bg-flame-500/10 text-flame-400"
-                    : "border-white/8 text-muted hover:border-white/18"
+                    : "border-paper/8 text-muted hover:border-paper/18"
                 }`}
               >
                 {seconds}s
@@ -800,7 +800,7 @@ function AnalyzeDialog({
             className="w-full"
           />
         </Field>
-        <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-ink-850/60 px-3 py-2 text-[11px] text-muted">
+        <label className="flex items-start gap-2 rounded-lg border border-paper/8 bg-ink-850/60 px-3 py-2 text-[11px] text-muted">
           <input
             type="checkbox"
             checked={ignoreStatic}

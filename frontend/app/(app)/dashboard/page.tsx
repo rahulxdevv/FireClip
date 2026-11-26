@@ -41,8 +41,8 @@ export default function DashboardPage() {
   const { counts, usage } = data;
   const hasVideos = counts.videos > 0;
   const renderMinutes = usage.render_seconds / 60;
-  const clipLimit = workspace?.monthly_clip_limit ?? 500;
-  const renderLimit = workspace?.monthly_render_minutes ?? 600;
+  const clipLimit = workspace?.monthly_clip_limit ?? 300;
+  const renderLimit = workspace?.monthly_render_minutes ?? 300;
 
   return (
     <div className="space-y-5">
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             <PanelHeader
               title="Top clips"
               action={
-                <Link href="/clips" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                <Link href="/clips" className="text-[12px] font-medium text-flame-400 hover:text-flame-600">
                   Review all
                 </Link>
               }
@@ -106,16 +106,16 @@ export default function DashboardPage() {
                 No clips yet.
               </p>
             ) : (
-              <div className="divide-y divide-white/[0.05]">
+              <div className="divide-y divide-paper/[0.05]">
                 {data.recent_clips.map((clip) => (
                   <Link
                     key={clip.id}
                     href={"/clips?highlight=" + clip.id}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.025]"
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-paper/[0.025]"
                   >
                     <span
                       className={
-                        "flex h-8 w-9 shrink-0 items-center justify-center rounded-[8px] bg-white/[0.05] font-mono text-[12.5px] font-semibold tabular-nums " +
+                        "flex h-8 w-9 shrink-0 items-center justify-center rounded-[8px] bg-paper/[0.05] font-mono text-[12.5px] font-semibold tabular-nums " +
                         scoreTone(clip.virality_score)
                       }
                     >
@@ -138,7 +138,7 @@ export default function DashboardPage() {
             <PanelHeader
               title="Recent videos"
               action={
-                <Link href="/videos" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                <Link href="/videos" className="text-[12px] font-medium text-flame-400 hover:text-flame-600">
                   Library
                 </Link>
               }
@@ -146,14 +146,14 @@ export default function DashboardPage() {
             {data.recent_videos.length === 0 ? (
               <p className="px-5 py-9 text-center text-[12.5px] text-faint">No videos yet.</p>
             ) : (
-              <div className="divide-y divide-white/[0.05]">
+              <div className="divide-y divide-paper/[0.05]">
                 {data.recent_videos.slice(0, 5).map((video) => (
                   <Link
                     key={video.id}
                     href={"/videos/" + video.id}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.025]"
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-paper/[0.025]"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white/[0.05] text-faint">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-paper/[0.05] text-faint">
                       <Film className="h-3.5 w-3.5" />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -176,12 +176,12 @@ export default function DashboardPage() {
             {data.processing.length === 0 ? (
               <p className="px-5 py-6 text-[12.5px] text-faint">Queue is idle.</p>
             ) : (
-              <div className="divide-y divide-white/[0.05]">
+              <div className="divide-y divide-paper/[0.05]">
                 {data.processing.map((job) => (
                   <Link
                     key={job.id}
                     href={job.video_id ? "/videos/" + job.video_id : "/renders"}
-                    className="block px-5 py-3 transition-colors hover:bg-white/[0.025]"
+                    className="block px-5 py-3 transition-colors hover:bg-paper/[0.025]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <JobStatusBadge status={job.status} />
@@ -200,7 +200,7 @@ export default function DashboardPage() {
             <PanelHeader
               title="Usage"
               action={
-                <Link href="/billing" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                <Link href="/billing" className="text-[12px] font-medium text-flame-400 hover:text-flame-600">
                   Plan
                 </Link>
               }
@@ -218,7 +218,7 @@ export default function DashboardPage() {
                 limit={clipLimit}
                 format={(value) => String(Math.round(value))}
               />
-              <div className="flex items-center justify-between border-t border-white/[0.05] pt-3 text-[11.5px]">
+              <div className="flex items-center justify-between border-t border-paper/[0.05] pt-3 text-[11.5px]">
                 <span className="text-faint">Audio transcribed</span>
                 <span className="tabular-nums text-muted">{formatDuration(usage.transcription_seconds)}</span>
               </div>
@@ -230,12 +230,12 @@ export default function DashboardPage() {
               <PanelHeader
                 title="Renders"
                 action={
-                  <Link href="/renders" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                  <Link href="/renders" className="text-[12px] font-medium text-flame-400 hover:text-flame-600">
                     Queue
                   </Link>
                 }
               />
-              <div className="divide-y divide-white/[0.05]">
+              <div className="divide-y divide-paper/[0.05]">
                 {data.renders.slice(0, 4).map((render) => (
                   <div key={render.id} className="flex items-center gap-3 px-5 py-2.5">
                     <Download className="h-3.5 w-3.5 shrink-0 text-ink-500" />
@@ -272,7 +272,7 @@ function Metric({
     <Link href={href} className="panel panel-hover group block p-4">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[12px] text-muted">{label}</span>
-        <Icon className="h-3.5 w-3.5 text-ink-500 transition-colors group-hover:text-flame-400" />
+        <Icon className="h-3.5 w-3.5 text-ink-500 transition-colors group-hover:text-flame-600" />
       </div>
       <p className="mt-3 text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-paper">
         {value}
@@ -301,7 +301,7 @@ function UsageBar({
           {format(value)} / {format(limit)}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+      <div className="h-1.5 overflow-hidden rounded-full bg-paper/[0.07]">
         <div className="h-full rounded-full bg-flame-500" style={{ width: pct + "%" }} />
       </div>
     </div>

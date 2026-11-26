@@ -678,7 +678,7 @@ export default function EditorPage() {
 
           <Panel>
             <PanelHeader title="Transcript in range" description="Edit transcript text from the source video page." />
-            <div className="max-h-56 overflow-y-auto divide-y divide-white/5">
+            <div className="max-h-56 overflow-y-auto divide-y divide-paper/5">
               {segments.length === 0 ? (
                 <p className="px-4 py-6 text-center text-[12px] text-faint">No transcript segments overlap this range.</p>
               ) : (
@@ -690,7 +690,7 @@ export default function EditorPage() {
                       const video = document.querySelector("video");
                       if (video) video.currentTime = segment.start_ms / 1000;
                     }}
-                    className="flex w-full gap-3 px-4 py-2 text-left hover:bg-white/2"
+                    className="flex w-full gap-3 px-4 py-2 text-left hover:bg-paper/2"
                   >
                     <span className="mt-0.5 shrink-0 font-mono text-[10px] text-flame-400">
                       {formatTimecode(segment.start_ms)}
@@ -764,7 +764,7 @@ export default function EditorPage() {
                     </Field>
                   </div>
                 ) : null}
-                <div className="space-y-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                <div className="space-y-3 rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                   <Field label="Layout">
                     <Select
                       value={draft.layout.mode || "fill"}
@@ -890,7 +890,7 @@ export default function EditorPage() {
                           Math.abs(draft.focus_x - (x as number)) < 0.03 &&
                           Math.abs(draft.focus_y - (y as number)) < 0.03
                             ? "border-flame-500/40 bg-flame-500/8 text-flame-400"
-                            : "border-white/8 text-muted hover:border-white/16"
+                            : "border-paper/8 text-muted hover:border-paper/16"
                         }`}
                       >
                         {label as string}
@@ -916,7 +916,7 @@ export default function EditorPage() {
                     the selected range; adjust it freely.
                   </p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                <div className="space-y-2 rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                   <p className="text-[11.5px] font-medium">Transitions</p>
                   <Switch
                     checked={Number(draft.audio.fade_in || 0) > 0}
@@ -959,11 +959,11 @@ export default function EditorPage() {
                             type="button"
                             onClick={() => applyCaptionStyle(style)}
                             className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 pr-5 text-left text-[10.5px] ${
-                              active ? "border-flame-500/40 bg-flame-500/8 text-paper" : "border-white/8 text-muted hover:border-white/16"
+                              active ? "border-flame-500/40 bg-flame-500/8 text-paper" : "border-paper/8 text-muted hover:border-paper/16"
                             }`}
                           >
                             <span
-                              className="h-5 w-5 shrink-0 rounded-sm border border-white/20"
+                              className="h-5 w-5 shrink-0 rounded-sm border border-paper/20"
                               style={{
                                 background: String(config.box_color || "var(--color-seed)"),
                                 color: String(config.highlight_color || "var(--color-flame-500)"),
@@ -983,7 +983,7 @@ export default function EditorPage() {
                               type="button"
                               aria-label={`Delete ${style.name}`}
                               onClick={() => deleteCaptionStyle(style)}
-                              className="absolute right-1 top-1 rounded p-0.5 text-faint opacity-0 transition hover:bg-white/10 hover:text-rose-300 group-hover:opacity-100"
+                              className="absolute right-1 top-1 rounded p-0.5 text-faint opacity-0 transition hover:bg-paper/10 hover:text-rose-300 group-hover:opacity-100"
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
@@ -1008,7 +1008,7 @@ export default function EditorPage() {
                     ))}
                   </Select>
                 </Field>
-                <div className="space-y-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                <div className="space-y-3 rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11.5px] font-medium">Translated captions</p>
                     {draft.caption_translation.language ? (
@@ -1031,13 +1031,13 @@ export default function EditorPage() {
                     </Button>
                   </div>
                   {draft.caption_translation.segments?.length ? (
-                    <div className="flex items-center justify-between gap-2 rounded-md bg-white/4 px-2 py-1.5">
+                    <div className="flex items-center justify-between gap-2 rounded-md bg-paper/4 px-2 py-1.5">
                       <span className="truncate text-[10.5px] text-muted">{draft.caption_translation.segments[0]?.text}</span>
                       <button type="button" onClick={clearTranslation} className="shrink-0 text-[10px] text-faint hover:text-rose">Clear</button>
                     </div>
                   ) : null}
                 </div>
-                <div className="space-y-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                <div className="space-y-3 rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11.5px] font-medium">Heading</p>
                     <Switch
@@ -1190,7 +1190,7 @@ export default function EditorPage() {
                     </>
                   }
                 >
-                  <div className="mb-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                  <div className="mb-3 rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                     <Switch
                       checked={includeLook}
                       onCheckedChange={setIncludeLook}
@@ -1230,7 +1230,7 @@ export default function EditorPage() {
                     className="flex-1" />
                   <span className="w-10 text-right font-mono">{Math.round(Number(draft.audio.volume ?? 1) * 100)}%</span>
                 </label>
-                <div className="rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                <div className="rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 text-[12px] text-muted">
                       <Music className="h-3.5 w-3.5" /> Background music
@@ -1260,7 +1260,7 @@ export default function EditorPage() {
                       </label>
                     </>
                   ) : (
-                    <label className="mt-2 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/12 py-2.5 text-[11px] text-faint hover:border-flame-500/40 hover:text-paper">
+                    <label className="mt-2 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-paper/12 py-2.5 text-[11px] text-faint hover:border-flame-500/40 hover:text-paper">
                       {uploading === "music" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                       Upload an audio file
                       <input type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" className="hidden"
@@ -1287,7 +1287,7 @@ export default function EditorPage() {
                   <Button size="sm" variant="outline" onClick={addTextOverlay} className="flex-1">
                     <Layers className="h-3 w-3" /> Text
                   </Button>
-                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/12 px-3 py-1.5 text-[13px] text-paper hover:bg-white/4">
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-paper/12 px-3 py-1.5 text-[13px] text-paper hover:bg-paper/4">
                     {uploading === "image" ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageIcon className="h-3 w-3" />}
                     Image / B-roll
                     <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif" className="hidden"
@@ -1299,13 +1299,13 @@ export default function EditorPage() {
                 </div>
 
                 {draft.overlays.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-[11px] text-faint">
+                  <p className="rounded-lg border border-dashed border-paper/10 px-3 py-6 text-center text-[11px] text-faint">
                     No overlays yet. Add positioned text or upload an image.
                   </p>
                 ) : (
                   <div className="space-y-3">
                     {draft.overlays.map((overlay) => (
-                      <div key={overlay.id || `${overlay.type}-${overlay.start_ms}`} className="rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                      <div key={overlay.id || `${overlay.type}-${overlay.start_ms}`} className="rounded-lg border border-paper/8 bg-ink-850/60 p-3">
                         <div className="flex items-center justify-between gap-2">
                           <span className="flex items-center gap-1.5 text-[11px] text-muted">
                             {overlay.type === "text" ? <Layers className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
@@ -1410,7 +1410,7 @@ export default function EditorPage() {
                     <option value="webm">WebM, VP9 + Opus</option>
                   </Select>
                 </Field>
-                <div className="rounded-lg border border-white/8 bg-ink-850/60 p-3 text-[11px] text-faint">
+                <div className="rounded-lg border border-paper/8 bg-ink-850/60 p-3 text-[11px] text-faint">
                   <div className="flex justify-between">
                     <span>Output</span>
                     <span className="font-mono text-muted">{draft.width}×{draft.height}</span>
@@ -1433,7 +1433,7 @@ export default function EditorPage() {
                 </Button>
 
                 {renderJob.data ? (
-                  <div className="rounded-lg border border-white/8 bg-ink-850 p-3">
+                  <div className="rounded-lg border border-paper/8 bg-ink-850 p-3">
                     <div className="flex items-center justify-between text-[11.5px]">
                       <span className="text-muted capitalize">{renderJob.data.status}</span>
                       <span className="font-mono text-faint">{Math.round(renderJob.data.progress)}%</span>
@@ -1450,7 +1450,7 @@ export default function EditorPage() {
                   </div>
                 ) : null}
 
-                <div className="border-t border-white/8 pt-3">
+                <div className="border-t border-paper/8 pt-3">
                   <p className="text-[11px] font-medium text-muted">Export library</p>
                   <Link href="/exports" className="mt-1 block text-[11px] text-faint hover:text-paper">
                     All rendered files
@@ -1550,7 +1550,7 @@ function ColorField({
   return (
     <label className="block text-[10.5px] text-faint">
       {label}
-      <span className="mt-1 flex items-center gap-2 rounded-lg border border-white/10 bg-ink-850 px-2 py-1.5">
+      <span className="mt-1 flex items-center gap-2 rounded-lg border border-paper/10 bg-ink-850 px-2 py-1.5">
         <input
           type="color"
           value={value}

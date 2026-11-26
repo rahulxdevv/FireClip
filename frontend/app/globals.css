@@ -61,6 +61,77 @@
   --scrollbar-thumb: #23233a;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --glow: radial-gradient(70% 60% at 50% 0%, rgba(111, 92, 252, 0.18), transparent 70%);
+  --shell-glow: radial-gradient(70% 60% at 18% 0%, rgba(111, 92, 252, 0.20), transparent 70%);
+
+  /* Marketing sheet. Light is the default; dark overrides the tokens. */
+  --mk-bg: #ffffff;
+  --mk-bg-soft: #fbfaff;
+  --mk-card: #ffffff;
+  --mk-line: #e9e8f4;
+  --mk-line-strong: #d8d5e8;
+  --mk-nav: rgba(255, 255, 255, 0.78);
+  --mk-nav-shadow: 0 16px 40px -32px rgba(24, 16, 90, 0.45);
+  --mk-solid: #0b0b1c;
+  --mk-solid-fg: #ffffff;
+  --mk-hero: radial-gradient(58% 62% at 50% 0%, #e9e7ff 0%, #f4f3ff 38%, rgba(255, 255, 255, 0) 78%);
+  --mk-card-shadow: 0 30px 70px -56px rgba(24, 16, 90, 0.45);
+  --mk-frame-shadow: 0 50px 120px -70px rgba(24, 16, 90, 0.45);
+}
+
+/* Light dashboard: the same tokens, re-pointed at paper surfaces. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-ink-950: #f5f4f9;
+  --color-ink-900: #ffffff;
+  --color-ink-850: #fbfafe;
+  --color-ink-800: #f1eff7;
+  --color-ink-750: #eae7f2;
+  --color-ink-700: #e2dfeb;
+  --color-ink-600: #d0ccdc;
+  --color-ink-500: #a9a4b8;
+  --color-paper: #15131f;
+  --color-muted: #5d5970;
+  --color-faint: #6f6a81;
+  --color-seed: #ffffff;
+  --color-flame-400: #5a45e8;
+  --color-ember: #6d4aff;
+  --color-mint: #087a54;
+  --color-rose: #d92d4b;
+  --hairline: rgba(20, 17, 42, 0.09);
+  --hairline-strong: rgba(20, 17, 42, 0.18);
+  --surface: rgba(20, 17, 42, 0.03);
+  --surface-raised: rgba(20, 17, 42, 0.05);
+  --panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --input-bg: #ffffff;
+  --input-bg-focus: #ffffff;
+  --input-border-focus: rgba(111, 92, 252, 0.55);
+  --flame-ring: rgba(111, 92, 252, 0.14);
+  --link-underline: rgba(90, 69, 232, 0.35);
+  --scrollbar-thumb: #d7d3e3;
+  --glow: radial-gradient(70% 60% at 50% 0%, rgba(111, 92, 252, 0.08), transparent 70%);
+  --shell-glow: radial-gradient(70% 60% at 18% 0%, rgba(111, 92, 252, 0.10), transparent 70%);
+}
+
+/* Dark marketing sheet. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-night: #f3f2fb;
+  --color-ash: #a6a3b9;
+  --color-hair: rgba(255, 255, 255, 0.10);
+  --color-cream: rgba(255, 255, 255, 0.06);
+  --color-mist: rgba(255, 255, 255, 0.07);
+  --mk-bg: #07070d;
+  --mk-bg-soft: #0b0b14;
+  --mk-card: #0e0e19;
+  --mk-line: rgba(255, 255, 255, 0.09);
+  --mk-line-strong: rgba(255, 255, 255, 0.17);
+  --mk-nav: rgba(10, 10, 18, 0.72);
+  --mk-nav-shadow: 0 18px 50px -30px rgba(0, 0, 0, 0.85);
+  --mk-solid: #f4f3fb;
+  --mk-solid-fg: #0b0b15;
+  --mk-hero: radial-gradient(58% 62% at 50% 0%, rgba(111, 92, 252, 0.24) 0%, rgba(111, 92, 252, 0.07) 38%, rgba(7, 7, 13, 0) 78%);
+  --mk-card-shadow: 0 40px 100px -60px rgba(0, 0, 0, 0.9);
+  --mk-frame-shadow: 0 60px 140px -70px rgba(0, 0, 0, 0.95);
 }
 
 * {
@@ -234,27 +305,49 @@ input[type="radio"]:not(.sr-only) {
     line-height: 1.65;
     color: var(--color-muted);
   }
-  /* The landing page sits on its own light sheet. */
+  /* The landing page sits on its own sheet, light or dark. */
   .sheet {
-    background: #ffffff;
+    background: var(--mk-bg);
     color: var(--color-night);
     color-scheme: light;
+  }
+  html[data-theme="dark"] .sheet {
+    color-scheme: dark;
   }
   .glow-top {
     background: var(--glow);
   }
+  .mk-hero {
+    background: var(--mk-hero);
+  }
+  .mk-nav {
+    border: 1px solid var(--mk-line);
+    background: var(--mk-nav);
+    box-shadow: var(--mk-nav-shadow);
+    backdrop-filter: blur(18px) saturate(1.35);
+  }
   .mk-card {
     border-radius: 20px;
-    border: 1px solid var(--color-hair);
-    background: #ffffff;
-    box-shadow: 0 30px 70px -56px rgba(24, 16, 90, 0.45);
+    border: 1px solid var(--mk-line);
+    background: var(--mk-card);
+    box-shadow: var(--mk-card-shadow);
   }
   .mk-pill {
     border-radius: 999px;
-    border: 1px solid var(--color-hair);
-    background: #ffffff;
+    border: 1px solid var(--mk-line-strong);
+    background: var(--mk-card);
     color: var(--color-night);
   }
+}
+
+html[data-theme="light"] .panel {
+  border-color: rgba(20, 17, 42, 0.08);
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 18px 40px -36px rgba(20, 17, 42, 0.35);
+}
+html[data-theme="light"] .panel-hover:hover {
+  border-color: rgba(20, 17, 42, 0.16);
+  background: #ffffff;
 }
 
 @keyframes rise {

@@ -340,7 +340,7 @@ export default function CampaignDetailPage() {
                 action={<Button size="sm" onClick={() => setAttachOpen(true)}><Plus className="h-4 w-4" /> Add videos</Button>}
               />
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {data.videos.map((video) => (
                   <div key={video.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
                     <div className="min-w-0">
@@ -374,7 +374,7 @@ export default function CampaignDetailPage() {
                 description="Run campaign analysis on the attached videos. Existing transcripts are reused automatically."
               />
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {data.clips.map((clip) => (
                   <div key={clip.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                     <span className="w-9 shrink-0 font-mono text-[13px] text-flame-400">{Math.round(clip.virality_score)}</span>
@@ -453,7 +453,7 @@ export default function CampaignDetailPage() {
                 <Input type="number" min={0} max={12} value={form.outline_width} onChange={(event) => change("outline_width", event.target.value)} />
               </Field>
             </div>
-            <div className="rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+            <div className="rounded-xl border border-paper/8 bg-ink-850/50 p-3.5">
               <p className="mb-3 text-[11px] font-semibold text-faint">Brand kit</p>
               <div className="space-y-3">
                 <Field label="Headline overlay" hint="Short hook shown at the top of every auto-render.">
@@ -482,12 +482,12 @@ export default function CampaignDetailPage() {
                         width={44}
                         height={44}
                         unoptimized
-                        className="h-11 w-11 rounded border border-white/10 bg-ink-950 object-contain"
+                        className="h-11 w-11 rounded border border-paper/10 bg-ink-950 object-contain"
                       />
                     ) : (
-                      <span className="flex h-11 w-11 items-center justify-center rounded border border-dashed border-white/15 text-faint"><ImageIcon className="h-4 w-4" /></span>
+                      <span className="flex h-11 w-11 items-center justify-center rounded border border-dashed border-paper/15 text-faint"><ImageIcon className="h-4 w-4" /></span>
                     )}
-                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] hover:bg-white/5">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-paper/10 px-2.5 py-1.5 text-[11px] hover:bg-paper/5">
                       <Upload className="h-3.5 w-3.5" /> {uploadingLogo ? "Uploading..." : form.logo_asset_key ? "Replace" : "Upload"}
                       <input
                         type="file"
@@ -516,7 +516,7 @@ export default function CampaignDetailPage() {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+            <div className="space-y-3 rounded-xl border border-paper/8 bg-ink-850/50 p-3.5">
               <p className="mb-3 text-[11px] font-semibold text-faint">Automation</p>
               <Switch
                 checked={form.auto_approve}
@@ -545,7 +545,7 @@ export default function CampaignDetailPage() {
                 label="Auto-publish rendered clips"
               />
               {form.auto_publish ? (
-                <div className="space-y-3 border-t border-white/6 pt-3">
+                <div className="space-y-3 border-t border-paper/6 pt-3">
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Quality floor" hint="Skip below this score.">
                       <Input type="number" min={0} max={100} value={form.auto_publish_min_score} onChange={(event) => change("auto_publish_min_score", event.target.value)} />
@@ -578,7 +578,7 @@ export default function CampaignDetailPage() {
                     ) : (
                       <div className="space-y-1.5">
                         {(accounts.data || []).filter((account) => account.status === "connected").map((account) => (
-                          <label key={account.id} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-white/4">
+                          <label key={account.id} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 hover:bg-paper/4">
                             <input
                               type="checkbox"
                               className="h-3.5 w-3.5 accent-flame-500"
@@ -629,7 +629,7 @@ export default function CampaignDetailPage() {
         ) : (
           <div className="max-h-80 space-y-1 overflow-y-auto">
             {available.map((video) => (
-              <label key={video.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/4">
+              <label key={video.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-paper/4">
                 <input
                   type="checkbox"
                   checked={selectedVideos.includes(video.id)}

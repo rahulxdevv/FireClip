@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/cn";
 import { api } from "@/lib/api";
 import { useSessionStore } from "@/lib/stores";
@@ -145,14 +146,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[268px] flex-col overflow-hidden border-r border-white/[0.06] bg-[#08080e] transition-transform duration-200 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[268px] flex-col overflow-hidden border-r border-paper/[0.06] bg-ink-900 transition-transform duration-200 lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-64"
-          style={{ background: "radial-gradient(70% 60% at 18% 0%, rgba(111,92,252,0.20), transparent 70%)" }}
+          style={{ background: "var(--shell-glow)" }}
         />
         <div className="relative flex h-[62px] items-center justify-between px-4">
           <Link href="/dashboard" aria-label="FireClip dashboard">
@@ -174,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="relative mt-3 min-h-0 flex-1 overflow-y-auto px-2.5 pb-4">
           {NAV.map((section) => (
             <div key={section.group} className="mb-4 last:mb-0">
-              <p className="px-2.5 pb-1.5 text-[10.5px] font-medium text-faint/75">{section.group}</p>
+              <p className="px-2.5 pb-1.5 text-[10.5px] font-medium text-faint">{section.group}</p>
               <div className="space-y-0.5">
                 {section.items.map((item) => (
                   <NavLink key={item.href} href={item.href} label={item.label} Icon={item.icon} />
@@ -188,10 +189,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="lg:pl-[268px]">
-        <header className="sticky top-0 z-30 flex h-[62px] items-center gap-3 border-b border-white/[0.06] bg-ink-950/85 px-4 backdrop-blur-xl sm:px-6">
+        <header className="sticky top-0 z-30 flex h-[62px] items-center gap-3 border-b border-paper/[0.06] bg-ink-950/85 px-4 backdrop-blur-xl sm:px-6">
           <div className="mr-auto flex min-w-0 items-center pl-10 lg:pl-0">
             <HeaderBreadcrumb />
           </div>
+          <ThemeToggle />
           <NotificationBell />
           <UserMenu />
         </header>
@@ -219,8 +221,8 @@ function NavLink({
       className={cn(
         "group flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[12.5px] transition-colors duration-150",
         active
-          ? "bg-white/[0.07] text-paper shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-          : "text-muted hover:bg-white/[0.035] hover:text-paper",
+          ? "bg-paper/[0.07] text-paper shadow-[inset_0_0_0_1px_var(--hairline-strong)]"
+          : "text-muted hover:bg-paper/[0.035] hover:text-paper",
       )}
     >
       <Icon className={cn("h-[15px] w-[15px] shrink-0", active ? "text-flame-400" : "text-faint group-hover:text-muted")} />
@@ -449,7 +451,7 @@ function SystemFooter() {
       .catch(() => setStatus(null));
   }, []);
   return (
-    <div className="relative z-10 border-t border-paper/[0.06] bg-[#08080e] px-3.5 py-3">
+    <div className="relative z-10 border-t border-paper/[0.06] bg-ink-900 px-3.5 py-3">
       <div className="flex items-center justify-between gap-2 text-[11px]">
         <Link
           href="/docs"
@@ -478,7 +480,7 @@ function HeaderBreadcrumb() {
   return (
     <div className="flex min-w-0 items-center gap-2 text-[12.5px]">
       <span className="hidden text-faint sm:inline">{section?.group || "Workspace"}</span>
-      <span className="hidden text-white/15 sm:inline">/</span>
+      <span className="hidden text-paper/15 sm:inline">/</span>
       <span className="truncate font-medium text-paper">{item?.label || "FireClip"}</span>
     </div>
   );

@@ -251,8 +251,10 @@ export default function UploadPage() {
           </Alert>
           <div className="flex items-start gap-2 rounded-[var(--radius-card)] border border-paper/8 bg-ink-900 p-4 text-[11.5px] leading-relaxed text-faint">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-mint" />
-            Files are served only through authenticated endpoints with workspace checks. Local development
-            stores media under <code className="font-mono text-muted">backend/data</code>.
+            <p>
+              Files are served only through authenticated endpoints with workspace checks. Local
+              development stores media under <code className="font-mono text-muted">backend/data</code>.
+            </p>
           </div>
         </div>
       </form>

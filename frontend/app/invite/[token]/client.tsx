@@ -113,7 +113,7 @@ export function InviteClient({ token }: { token: string }) {
       }
     >
       <div className="space-y-4">
-        <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/4 p-4">
+        <div className="flex items-center gap-3 rounded-lg border border-paper/10 bg-paper/4 p-4">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-flame-500/12 text-flame-500">
             <Users className="h-4 w-4" />
           </span>

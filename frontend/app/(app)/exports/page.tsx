@@ -174,11 +174,11 @@ export default function ExportsPage() {
                     <Film className="h-7 w-7" />
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent p-3 text-[10px]">
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent p-3 text-[10px] text-white/80">
                   <span className="font-mono">{item.width}×{item.height}</span>
                   <span className="font-mono">{formatDuration(item.duration_ms, true)}</span>
                 </div>
-                <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border border-paper/20 bg-black/70">
+                <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border border-white/20 bg-black/70">
                   <input
                     type="checkbox"
                     aria-label={`Select ${item.filename}`}

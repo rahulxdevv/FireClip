@@ -29,10 +29,10 @@ export function VideoCard({ video }: { video: Video }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-paper">
+          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white">
             {formatDuration(video.duration_seconds)}
           </span>
-          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-paper">
+          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white">
             {video.width}×{video.height}
           </span>
         </div>
@@ -41,7 +41,7 @@ export function VideoCard({ video }: { video: Video }) {
         </span>
         <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60">
-            <Play className="ml-0.5 h-4 w-4 fill-paper text-paper" />
+            <Play className="ml-0.5 h-4 w-4 fill-white text-white" />
           </span>
         </span>
       </div>

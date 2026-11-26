@@ -205,7 +205,7 @@ export function FramingPreview({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-control)] border border-paper/10 bg-black",
+        "relative overflow-hidden rounded-[var(--radius-control)] border border-white/10 bg-black",
         aspect === "9:16"
           ? "aspect-[9/16]"
           : aspect === "1:1"
@@ -237,11 +237,11 @@ export function FramingPreview({
             className="h-full w-full object-cover"
             style={{ objectPosition: `${focusX * 100}% ${focusY * 100}%` }}
           />
-          <span className="absolute bottom-0.5 left-1 rounded bg-black/70 px-1 py-0.5 font-mono text-[7px] text-paper/80">cam</span>
+          <span className="absolute bottom-0.5 left-1 rounded bg-black/70 px-1 py-0.5 font-mono text-[7px] text-white/80">cam</span>
         </div>
       ) : null}
       <div className="pointer-events-none absolute inset-0 border border-flame-500/30" />
-      <span className="absolute bottom-1.5 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] text-paper/80">
+      <span className="absolute bottom-1.5 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] text-white/80">
         {mode === "facecam" ? "face cam" : mode === "fit" ? "fit" : `${aspect}, ${Math.round(focusX * 100)}/${Math.round(focusY * 100)}`}
       </span>
     </div>
