@@ -162,7 +162,7 @@ export default function BillingPage() {
                   onClick={() => setInterval(option)}
                   className={
                     "rounded-[var(--radius-control)] px-2.5 py-1 text-[11px] font-medium capitalize " +
-                    (interval === option ? "bg-flame-500 text-seed" : "text-faint hover:text-paper")
+                    (interval === option ? "bg-flame-500 text-white" : "text-faint hover:text-paper")
                   }
                 >
                   {option}ly

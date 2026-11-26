@@ -1,57 +1,66 @@
-/* Hallmark v2 · theme: custom (PeakCut + opus.pro references) · genre: atmospheric · redesign: full · scope: site · type: Bricolage Grotesque / Manrope · built: 2026-11-26 */
-/* Critique: a warm-ink control room. Video is the material, flame is the only signal, type does the shouting and surfaces stay quiet. */
+/* FireClip design system: obsidian surfaces, violet signal, quiet type. */
 
 @import "tailwindcss";
 
 @theme {
-  /* Warm ink, not blue-grey: every surface carries a little lamp light. */
-  --color-ink-950: #0a0908;
-  --color-ink-900: #100e0c;
-  --color-ink-850: #15120f;
-  --color-ink-800: #1a1714;
-  --color-ink-750: #211d19;
-  --color-ink-700: #2b2620;
-  --color-ink-600: #3a332b;
-  --color-ink-500: #4f463c;
-  --color-paper: #f7f2ea;
-  --color-muted: #ada39a;
-  --color-faint: #857b72;
-  --color-seed: #140a04;
-  --color-flame-400: #ff9350;
-  --color-flame-500: #ff6a1f;
-  --color-flame-600: #e2570f;
-  --color-ember: #ffb877;
-  --color-mint: #45d69b;
-  --color-rose: #ff6070;
+  /* Dark control-room surfaces. */
+  --color-ink-950: #07070c;
+  --color-ink-900: #0a0a11;
+  --color-ink-850: #0e0e18;
+  --color-ink-800: #12121d;
+  --color-ink-750: #171724;
+  --color-ink-700: #1f1f2e;
+  --color-ink-600: #2b2b3d;
+  --color-ink-500: #3c3c52;
+  --color-paper: #f5f5fa;
+  --color-muted: #a7a7bb;
+  --color-faint: #7c7c93;
+  --color-seed: #0a0716;
+
+  /* Signal: violet, with mint and rose reserved for state. */
+  --color-flame-400: #b0a4ff;
+  --color-flame-500: #6f5cfc;
+  --color-flame-600: #5b47ee;
+  --color-ember: #cbc0ff;
+  --color-mint: #4ae3a6;
+  --color-rose: #ff6d88;
+
+  /* Light marketing palette. */
+  --color-night: #0b0b1c;
+  --color-ash: #5f6178;
+  --color-hair: #e9e8f4;
+  --color-cream: #f7f6ff;
+  --color-mist: #eef0ff;
 
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
-  --font-display: var(--font-bricolage), var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, monospace;
 
-  /* Shape lock: controls 10, cards 14, chips 999. Nothing else. */
+  /* Shape lock: controls 10, cards 16, chips 999. Nothing else. */
   --radius-control: 10px;
-  --radius-card: 14px;
+  --radius-card: 16px;
   --radius-chip: 999px;
 
-  --shadow-lift: 0 20px 50px -30px rgba(0, 0, 0, 0.9);
-  --shadow-dialog: 0 24px 70px -24px rgba(0, 0, 0, 0.92);
-  --shadow-frame: 0 40px 120px -50px rgba(0, 0, 0, 0.95);
-  --shadow-primary: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --shadow-lift: 0 18px 40px -26px rgba(4, 3, 24, 0.85);
+  --shadow-dialog: 0 24px 70px -24px rgba(3, 2, 20, 0.9);
+  --shadow-frame: 0 50px 130px -60px rgba(33, 20, 110, 0.55);
+  --shadow-primary: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 :root {
-  --hairline: rgba(247, 242, 234, 0.075);
-  --hairline-strong: rgba(247, 242, 234, 0.14);
-  --surface: rgba(247, 242, 234, 0.028);
-  --surface-raised: rgba(247, 242, 234, 0.05);
-  --panel-inset: inset 0 1px 0 rgba(247, 242, 234, 0.03);
-  --input-bg: rgba(10, 9, 8, 0.6);
-  --input-bg-focus: rgba(10, 9, 8, 0.85);
-  --input-border-focus: rgba(255, 106, 31, 0.55);
-  --flame-ring: rgba(255, 106, 31, 0.12);
-  --link-underline: rgba(255, 106, 31, 0.4);
-  --scrollbar-thumb: #2b2620;
+  --hairline: rgba(255, 255, 255, 0.075);
+  --hairline-strong: rgba(255, 255, 255, 0.15);
+  --surface: rgba(255, 255, 255, 0.032);
+  --surface-raised: rgba(255, 255, 255, 0.058);
+  --panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  --input-bg: rgba(7, 7, 12, 0.65);
+  --input-bg-focus: rgba(7, 7, 12, 0.9);
+  --input-border-focus: rgba(111, 92, 252, 0.6);
+  --flame-ring: rgba(111, 92, 252, 0.16);
+  --link-underline: rgba(176, 164, 255, 0.45);
+  --scrollbar-thumb: #23233a;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --glow: radial-gradient(70% 60% at 50% 0%, rgba(111, 92, 252, 0.18), transparent 70%);
 }
 
 * {
@@ -78,14 +87,40 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
   text-wrap: balance;
+}
+
+/* Tailwind v4 leaves buttons on the default arrow. Everything clickable gets a hand. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+[role="menuitem"],
+[role="switch"]:not(:disabled),
+summary,
+label[for],
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]),
+select:not(:disabled),
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+input[type="range"],
+a[href] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
 }
 
 ::selection {
   background: var(--color-flame-500);
-  color: var(--color-seed);
+  color: #ffffff;
 }
 
 *:focus-visible {
@@ -114,18 +149,17 @@ button:not(:disabled):active {
 @layer components {
   .panel {
     border-radius: var(--radius-card);
-    border: 1px solid var(--hairline);
-    background: var(--surface);
-    box-shadow: var(--panel-inset);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
+    box-shadow: var(--panel-inset), 0 24px 60px -46px rgba(0, 0, 0, 0.9);
   }
   .panel-hover {
-    transition: border-color 200ms var(--ease), background-color 200ms var(--ease);
+    transition: border-color 200ms var(--ease), background-color 200ms var(--ease), transform 200ms var(--ease);
   }
   .panel-hover:hover {
-    border-color: var(--hairline-strong);
-    background: var(--surface-raised);
+    border-color: rgba(255, 255, 255, 0.13);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
   }
-  /* Labels are small, sentence case, untracked: the body face doing a quieter job. */
   .label-caps {
     font-size: 11px;
     font-weight: 600;
@@ -166,7 +200,7 @@ button:not(:disabled):active {
     transition: color 160ms var(--ease);
   }
   .doc-link:hover {
-    color: var(--color-flame-500);
+    color: #ffffff;
   }
   .doc-code {
     border-radius: 6px;
@@ -179,8 +213,8 @@ button:not(:disabled):active {
   .display {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.035em;
-    line-height: 0.98;
+    letter-spacing: -0.038em;
+    line-height: 1.02;
     text-wrap: balance;
     overflow-wrap: break-word;
     min-width: 0;
@@ -188,7 +222,7 @@ button:not(:disabled):active {
   .page-title {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
     font-size: 30px;
     line-height: 1.1;
     text-wrap: balance;
@@ -198,12 +232,33 @@ button:not(:disabled):active {
     line-height: 1.65;
     color: var(--color-muted);
   }
+  /* The landing page sits on its own light sheet. */
+  .sheet {
+    background: #ffffff;
+    color: var(--color-night);
+    color-scheme: light;
+  }
+  .glow-top {
+    background: var(--glow);
+  }
+  .mk-card {
+    border-radius: 20px;
+    border: 1px solid var(--color-hair);
+    background: #ffffff;
+    box-shadow: 0 30px 70px -56px rgba(24, 16, 90, 0.45);
+  }
+  .mk-pill {
+    border-radius: 999px;
+    border: 1px solid var(--color-hair);
+    background: #ffffff;
+    color: var(--color-night);
+  }
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -211,8 +266,20 @@ button:not(:disabled):active {
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 .animate-rise {
-  animation: rise 520ms var(--ease) both;
+  animation: rise 560ms var(--ease) both;
+}
+.animate-float {
+  animation: float 7s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -241,7 +308,6 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 999px;
   background: var(--color-flame-500);
   border: 2px solid var(--color-seed);
-  cursor: pointer;
 }
 input[type="range"]::-moz-range-thumb {
   width: 14px;
@@ -249,5 +315,4 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 999px;
   background: var(--color-flame-500);
   border: 2px solid var(--color-seed);
-  cursor: pointer;
 }

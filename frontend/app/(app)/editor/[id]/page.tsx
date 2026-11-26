@@ -480,7 +480,7 @@ export default function EditorPage() {
   const activeConfig = (activeStyle?.config || {}) as Record<string, unknown>;
   const captionPreview = {
     textColor: String(overrides.text_color || activeConfig.text_color || "#ffffff"),
-    highlightColor: String(overrides.highlight_color || activeConfig.highlight_color || "#ff6a1f"),
+    highlightColor: String(overrides.highlight_color || activeConfig.highlight_color || "#6f5cfc"),
     uppercase: Boolean(overrides.uppercase ?? activeConfig.uppercase ?? false),
     position: String(overrides.position || activeConfig.position || "bottom"),
     box: Boolean(overrides.box ?? activeConfig.box ?? true),
@@ -1095,7 +1095,7 @@ export default function EditorPage() {
                   />
                   <ColorField
                     label="Highlight"
-                    value={String(overrides.highlight_color || activeConfig.highlight_color || "#ff6a1f")}
+                    value={String(overrides.highlight_color || activeConfig.highlight_color || "#6f5cfc")}
                     onChange={(value) => apply({ caption_overrides: { ...overrides, highlight_color: value } })}
                   />
                   <ColorField

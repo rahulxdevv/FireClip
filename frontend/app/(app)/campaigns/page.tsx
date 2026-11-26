@@ -37,7 +37,7 @@ const emptyForm = {
   caption_style_id: "",
   auto_approve: false,
   auto_render: false,
-  accent_color: "#ff6a1f",
+  accent_color: "#6f5cfc",
   logo_text: "",
   headline: "",
   hashtags: "",

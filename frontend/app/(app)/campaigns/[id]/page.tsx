@@ -90,7 +90,7 @@ function toForm(campaign: CampaignDetail): FormState {
     publish_hour_utc: String(campaign.publish_hour_utc ?? 18),
     publish_privacy: campaign.publish_privacy || "public",
     text_color: String(overrides.text_color || "#ffffff"),
-    highlight_color: String(overrides.highlight_color || campaign.brand?.accent_color || "#ff6a1f"),
+    highlight_color: String(overrides.highlight_color || campaign.brand?.accent_color || "#6f5cfc"),
     outline_width: String(overrides.outline_width ?? 3),
     logo_text: campaign.brand?.logo_text || "",
     headline: campaign.brand?.headline || "",

@@ -11,7 +11,7 @@ type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-flame-500 text-seed shadow-primary hover:bg-flame-400 active:bg-flame-600",
+    "bg-flame-500 text-white shadow-primary hover:bg-flame-600 active:bg-[#4a37e0]",
   secondary:
     "border border-paper/12 bg-paper/[0.05] text-paper hover:border-paper/20 hover:bg-paper/[0.08]",
   ghost: "bg-transparent text-muted hover:bg-paper/[0.05] hover:text-paper",

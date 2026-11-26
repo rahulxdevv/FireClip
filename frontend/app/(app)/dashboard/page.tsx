@@ -4,257 +4,196 @@ import Link from "next/link";
 import {
   ArrowRight,
   CalendarClock,
-  Clapperboard,
   Download,
   Film,
   Flame,
+  Link2,
   Plus,
-  Radio,
   Sparkles,
   UploadCloud,
 } from "lucide-react";
-import { PageHeader, StatCard, SectionHeader, InlineProgress } from "@/components/shared";
-import { VideoCard } from "@/components/video-card";
-import { Alert, Badge, Button, EmptyState, PageSkeleton, Panel, PanelHeader } from "@/components/ui";
+import { InlineProgress } from "@/components/shared";
+import { Alert, Badge, Button, PageSkeleton, Panel, PanelHeader } from "@/components/ui";
 import { JobStatusBadge } from "@/components/status";
 import { useApi } from "@/lib/hooks";
 import { useSessionStore } from "@/lib/stores";
 import { formatBytes, formatDuration, relativeTime, scoreTone } from "@/lib/format";
 import type { Dashboard } from "@/lib/types";
 
+const CLIP_TONE: Record<string, "mint" | "rose" | "neutral"> = {
+  approved: "mint",
+  rejected: "rose",
+  suggested: "neutral",
+};
+
 export default function DashboardPage() {
   const { data, error, loading } = useApi<Dashboard>("/api/dashboard", { pollMs: 5000 });
-  const workspace = useSessionStore((state) => state.workspaces.find((w) => w.id === state.activeWorkspaceId));
+  const user = useSessionStore((state) => state.user);
+  const workspace = useSessionStore((state) =>
+    state.workspaces.find((item) => item.id === state.activeWorkspaceId),
+  );
+  const firstName = (user?.name || user?.email || "there").trim().split(/\s+/)[0].split("@")[0];
 
   if (loading && !data) return <PageSkeleton />;
-  if (error && !data) {
-    return (
-      <div className="space-y-4">
-        <PageHeader title="Dashboard" />
-        <Alert title="Could not load the dashboard">{error}</Alert>
-      </div>
-    );
-  }
+  if (error && !data) return <Alert title="Could not load the dashboard">{error}</Alert>;
   if (!data) return <PageSkeleton />;
 
   const { counts, usage } = data;
-  const onboarding = counts.videos === 0;
+  const hasVideos = counts.videos > 0;
   const renderMinutes = usage.render_seconds / 60;
+  const clipLimit = workspace?.monthly_clip_limit ?? 500;
+  const renderLimit = workspace?.monthly_render_minutes ?? 600;
 
   return (
-    <div>
-      <PageHeader        title="Dashboard"
-        description="Everything moving through the pipeline right now, read straight from the live database."
-        actions={
-          <>
-            <Link href="/schedule">
-              <Button variant="outline" size="sm">
-                <CalendarClock className="h-3.5 w-3.5" /> Schedule
-              </Button>
-            </Link>
-            <Link href="/import">
-              <Button variant="outline" size="sm">
-                <Radio className="h-3.5 w-3.5" /> Import URL
-              </Button>
-            </Link>
-            <Link href="/upload">
-              <Button size="sm">
-                <Plus className="h-3.5 w-3.5" /> New video
-              </Button>
-            </Link>
-          </>
-        }
-      />
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-[12px] text-faint">{workspace?.name || "Workspace"}</p>
+          <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-[-0.035em] text-paper">
+            Welcome back, {firstName}
+          </h1>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/import">
+            <Button variant="outline" size="sm">
+              <Link2 className="h-3.5 w-3.5" />
+              Import
+            </Button>
+          </Link>
+          <Link href="/upload">
+            <Button size="sm">
+              <Plus className="h-3.5 w-3.5" />
+              New video
+            </Button>
+          </Link>
+        </div>
+      </header>
 
-      {onboarding ? (
-        <Panel className="mb-6 overflow-hidden">
-          <div className="grid gap-6 p-6 sm:grid-cols-[1.2fr_1fr] sm:p-8">
+      {!hasVideos ? (
+        <Panel className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-flame-500/12 text-flame-400">
+              <Sparkles className="h-4 w-4" />
+            </span>
             <div>
-              <Badge tone="flame">First run</Badge>
-              <h2 className="mt-3 text-[22px] font-semibold tracking-tight">
-                Bring one video. FireClip will handle the rest.
-              </h2>
-              <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted">
-                Upload a file or paste a public YouTube / Twitch / Kick link. The pipeline probes the
-                media, transcribes it, and proposes clips with an explanation for each one.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link href="/upload">
-                  <Button>
-                    <UploadCloud className="h-4 w-4" /> Upload a video
-                  </Button>
-                </Link>
-                <Link href="/import">
-                  <Button variant="outline">Paste a URL</Button>
-                </Link>
-              </div>
+              <p className="text-[13px] font-medium text-paper">Start with one recording.</p>
+              <p className="text-[12px] text-faint">Upload a file or paste a YouTube, Twitch or Kick link.</p>
             </div>
-            <ol className="space-y-3 rounded-[var(--radius-card)] border border-paper/8 bg-ink-950/50 p-5 text-[12.5px]">
-              {[
-                "Probe media: duration, resolution, audio",
-                "Transcribe with word timestamps",
-                "Score highlights with visible signals",
-                "Trim, caption and render with FFmpeg",
-              ].map((step, index) => (
-                <li key={step} className="flex gap-3">
-                  <span className="font-mono text-[10px] text-flame-500">0{index + 1}</span>
-                  <span className="text-muted">{step}</span>
-                </li>
-              ))}
-            </ol>
           </div>
+          <Link href="/upload">
+            <Button size="sm">
+              <UploadCloud className="h-3.5 w-3.5" />
+              Upload footage
+            </Button>
+          </Link>
         </Panel>
       ) : null}
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Metric
+          icon={Film}
           label="Source videos"
           value={counts.videos}
-          hint={`${formatBytes(data.storage_bytes)} stored`}
+          hint={formatBytes(data.storage_bytes) + " stored"}
           href="/videos"
         />
-        <StatCard
-          label="Clips found"
+        <Metric
+          icon={Flame}
+          label="Clips"
           value={counts.clips}
-          hint={`${counts.approved_clips} approved`}
+          hint={counts.approved_clips + " approved"}
           href="/clips"
         />
-        <StatCard
-          label="Processing now"
+        <Metric
+          icon={Sparkles}
+          label="In pipeline"
           value={counts.processing}
-          hint={counts.processing > 0 ? "Workers are running" : "Queue is idle"}
+          hint={counts.processing > 0 ? "Workers running" : "Queue idle"}
           href="/renders"
         />
-        <StatCard
-          label="Published clips"
+        <Metric
+          icon={CalendarClock}
+          label="Published"
           value={counts.published}
-          hint={`${counts.scheduled_posts} scheduled`}
+          hint={counts.scheduled_posts + " scheduled"}
           href="/schedule"
         />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-        <div className="space-y-5">
-          <Panel>
-            <PanelHeader
-              title="Pipeline activity"
-              description={
-                data.processing.length > 0
-                  ? "Active ingestion, transcription, analysis and rendering jobs."
-                  : "No jobs are running. New uploads appear here immediately."
-              }
-              action={
-                counts.processing > 0 ? (
-                  <Badge tone="flame">
-                    <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-flame-500" />
-                    live
-                  </Badge>
-                ) : (
-                  <Badge tone="neutral">idle</Badge>
-                )
-              }
-            />
-            {data.processing.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
-                <Clapperboard className="h-5 w-5 text-ink-500" />
-                <p className="text-[12.5px] text-faint">
-                  Nothing queued. Upload footage or open a video to start analysis.
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-paper/6">
-                {data.processing.map((job) => (
-                  <div key={job.id} className="px-5 py-3.5">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <JobStatusBadge status={job.status} />
-                        <span className="text-[12.5px] capitalize text-muted">{job.stage || job.kind}</span>
-                      </div>
-                      <Link
-                        href={job.video_id ? `/videos/${job.video_id}` : "/renders"}
-                        className="text-[11.5px] text-faint hover:text-paper"
-                      >
-                        {formatDuration(0)}, {relativeTime(job.created_at)}
-                      </Link>
-                    </div>
-                    <InlineProgress value={job.progress} label={job.kind} />
-                    {job.error_message ? (
-                      <p className="mt-1.5 line-clamp-2 text-[11px] text-rose">{job.error_message}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </Panel>
-
-          <div>
-            <SectionHeader
-              title="Recent videos"
-              description="Latest media added to this workspace."
-              action={
-                <Link href="/videos" className="text-[12px] text-flame-400 hover:text-flame-500">
-                  View library
-                </Link>
-              }
-            />
-            {data.recent_videos.length === 0 ? (
-              <Panel>
-                <EmptyState
-                  icon={<Film className="h-5 w-5" />}
-                  title="No videos yet"
-                  description="Your uploads and imports will show up here."
-                  action={
-                    <Link href="/upload">
-                      <Button size="sm">Upload the first one</Button>
-                    </Link>
-                  }
-                />
-              </Panel>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.recent_videos.map((video) => (
-                  <VideoCard key={video.id} video={video} />
-                ))}
-              </div>
-            )}
-          </div>
-
+      <div className="grid gap-3 xl:grid-cols-[1.6fr_1fr]">
+        <div className="min-w-0 space-y-3">
           <Panel>
             <PanelHeader
               title="Top clips"
-              description="Ranked by the current virality score. Scores are explainable, not predictive guarantees."
+              description={data.recent_clips.length > 0 ? "Ranked by current score." : undefined}
               action={
-                <Link href="/clips" className="text-[12px] text-flame-400 hover:text-flame-500">
+                <Link href="/clips" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
                   Review all
                 </Link>
               }
             />
             {data.recent_clips.length === 0 ? (
-              <EmptyState
-                icon={<Flame className="h-5 w-5" />}
-                title="No candidates yet"
-                description="Once a video has a transcript, AI analysis will populate clip candidates."
-              />
+              <p className="px-5 py-9 text-center text-[12.5px] text-faint">
+                Clips appear after the first analysis.
+              </p>
             ) : (
-              <div className="divide-y divide-paper/6">
+              <div className="divide-y divide-white/[0.05]">
                 {data.recent_clips.map((clip) => (
                   <Link
                     key={clip.id}
-                    href={`/clips?highlight=${clip.id}`}
-                    className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-paper/3"
+                    href={"/clips?highlight=" + clip.id}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.025]"
                   >
-                    <span className={`w-9 font-mono text-[15px] font-semibold ${scoreTone(clip.virality_score)}`}>
+                    <span
+                      className={
+                        "flex h-8 w-9 shrink-0 items-center justify-center rounded-[8px] bg-white/[0.05] font-mono text-[12.5px] font-semibold tabular-nums " +
+                        scoreTone(clip.virality_score)
+                      }
+                    >
                       {Math.round(clip.virality_score)}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12.5px] font-medium text-paper">{clip.title}</p>
-                      <p className="mt-0.5 truncate text-[11px] text-faint">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12.5px] font-medium text-paper">{clip.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-faint">
                         {clip.video_title}, {formatDuration(clip.duration_ms, true)}
-                      </p>
-                    </div>
-                    <Badge tone={clip.status === "approved" ? "mint" : clip.status === "rejected" ? "rose" : "neutral"}>
-                      {clip.status}
-                    </Badge>
+                      </span>
+                    </span>
+                    <Badge tone={CLIP_TONE[clip.status] || "neutral"}>{clip.status}</Badge>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          <Panel>
+            <PanelHeader
+              title="Recent videos"
+              action={
+                <Link href="/videos" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                  Library
+                </Link>
+              }
+            />
+            {data.recent_videos.length === 0 ? (
+              <p className="px-5 py-9 text-center text-[12.5px] text-faint">Nothing uploaded yet.</p>
+            ) : (
+              <div className="divide-y divide-white/[0.05]">
+                {data.recent_videos.slice(0, 5).map((video) => (
+                  <Link
+                    key={video.id}
+                    href={"/videos/" + video.id}
+                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.025]"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white/[0.05] text-faint">
+                      <Film className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12.5px] font-medium text-paper">{video.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-faint">
+                        {formatDuration(video.duration_seconds)}, {relativeTime(video.created_at)}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-ink-500" />
                   </Link>
                 ))}
               </div>
@@ -262,108 +201,117 @@ export default function DashboardPage() {
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-3">
           <Panel>
-            <PanelHeader title="Usage this month" description="Measured locally from pipeline records." />
-            <div className="space-y-4 px-5 py-4">
-              <UsageBar
-                label="Render minutes"
-                value={renderMinutes}
-                limit={workspace?.monthly_render_minutes ?? 600}
-                format={(value) => `${value.toFixed(1)} min`}
-              />
-              <UsageBar
-                label="Clips generated"
-                value={counts.clips}
-                limit={workspace?.monthly_clip_limit ?? 500}
-                format={(value) => `${Math.round(value)}`}
-              />
-              <div className="flex items-center justify-between border-t border-paper/6 pt-3 text-[11.5px]">
-                <span className="text-faint">Transcribed audio</span>
-                <span className="font-mono text-muted">{formatDuration(usage.transcription_seconds)}</span>
+            <PanelHeader title="Pipeline" />
+            {data.processing.length === 0 ? (
+              <p className="px-5 py-6 text-[12.5px] text-faint">Queue is idle.</p>
+            ) : (
+              <div className="divide-y divide-white/[0.05]">
+                {data.processing.map((job) => (
+                  <Link
+                    key={job.id}
+                    href={job.video_id ? "/videos/" + job.video_id : "/renders"}
+                    className="block px-5 py-3 transition-colors hover:bg-white/[0.025]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <JobStatusBadge status={job.status} />
+                      <span className="text-[11px] text-faint">{relativeTime(job.created_at)}</span>
+                    </div>
+                    <div className="mt-2">
+                      <InlineProgress value={job.progress} label={job.stage || job.kind} />
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <div className="flex items-center justify-between text-[11.5px]">
-                <span className="text-faint">AI usage units</span>
-                <span className="font-mono text-muted">{Math.round(usage.ai_units).toLocaleString()}</span>
-              </div>
-              <Link
-                href="/billing"
-                className="flex items-center gap-1 pt-1 text-[11.5px] text-flame-400 hover:text-flame-500"
-              >
-                View plan & usage
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
+            )}
           </Panel>
 
           <Panel>
             <PanelHeader
-              title="Rendering"
+              title="Usage"
               action={
-                <Link href="/renders" className="text-[12px] text-flame-400 hover:text-flame-500">
-                  Queue
+                <Link href="/billing" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                  Plan
                 </Link>
               }
             />
-            {data.renders.length === 0 ? (
-              <p className="px-5 py-8 text-center text-[12px] text-faint">No renders yet.</p>
-            ) : (
-              <div className="divide-y divide-paper/6">
-                {data.renders.map((render) => (
-                  <div key={render.id} className="flex items-center gap-3 px-5 py-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] bg-paper/5 text-faint">
-                      <Download className="h-3.5 w-3.5" />
-                    </span>
+            <div className="space-y-4 px-5 py-4">
+              <UsageBar
+                label="Render minutes"
+                value={renderMinutes}
+                limit={renderLimit}
+                format={(value) => String(Math.round(value))}
+              />
+              <UsageBar
+                label="Clips"
+                value={counts.clips}
+                limit={clipLimit}
+                format={(value) => String(Math.round(value))}
+              />
+              <div className="flex items-center justify-between border-t border-white/[0.05] pt-3 text-[11.5px]">
+                <span className="text-faint">Audio transcribed</span>
+                <span className="tabular-nums text-muted">{formatDuration(usage.transcription_seconds)}</span>
+              </div>
+            </div>
+          </Panel>
+
+          {data.renders.length > 0 ? (
+            <Panel>
+              <PanelHeader
+                title="Renders"
+                action={
+                  <Link href="/renders" className="text-[12px] font-medium text-flame-400 hover:text-flame-300">
+                    Queue
+                  </Link>
+                }
+              />
+              <div className="divide-y divide-white/[0.05]">
+                {data.renders.slice(0, 4).map((render) => (
+                  <div key={render.id} className="flex items-center gap-3 px-5 py-2.5">
+                    <Download className="h-3.5 w-3.5 shrink-0 text-ink-500" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12px] text-paper">{render.project_name || render.preset}</p>
-                      <p className="font-mono text-[10px] text-faint">
-                        {render.preset}, {render.format}, {relativeTime(render.created_at)}
+                      <p className="text-[10.5px] text-faint">
+                        {render.format}, {relativeTime(render.created_at)}
                       </p>
                     </div>
                     <JobStatusBadge status={render.status} />
                   </div>
                 ))}
               </div>
-            )}
-          </Panel>
-
-          <Panel>
-            <PanelHeader title="Recent activity" description="Audit trail for this workspace." />
-            {data.recent_activity.length === 0 ? (
-              <p className="px-5 py-8 text-center text-[12px] text-faint">No activity recorded yet.</p>
-            ) : (
-              <div className="divide-y divide-paper/6">
-                {data.recent_activity.map((item) => (
-                  <div key={item.id} className="px-5 py-2.5">
-                    <p className="text-[11.5px] text-muted">
-                      <span className="text-paper">{item.user_email?.split("@")[0] || "system"}</span>{" "}
-                      {item.action.replace(/\./g, " ")}
-                    </p>
-                    <p className="mt-0.5 font-mono text-[9.5px] text-faint">{relativeTime(item.created_at)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Panel>
-
-          <Panel>
-            <PanelHeader title="Clip status" />
-            <div className="grid grid-cols-3 divide-x divide-paper/6">
-              {[
-                ["Approved", counts.approved_clips, "text-mint"],
-                ["Exports", counts.exports, "text-ember"],
-                ["Renders", counts.renders, "text-muted"],
-              ].map(([label, value, tone]) => (
-                <div key={String(label)} className="px-3 py-4 text-center">
-                  <p className={"font-display text-[19px] font-semibold tabular-nums " + tone}>{value as number}</p>
-                  <p className="mt-0.5 text-[10.5px] text-faint">{label as string}</p>
-                </div>
-              ))}
-            </div>
-          </Panel>
+            </Panel>
+          ) : null}
         </div>
       </div>
     </div>
+  );
+}
+
+function Metric({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  href,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  hint: string;
+  href: string;
+}) {
+  return (
+    <Link href={href} className="panel panel-hover group block p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[12px] text-muted">{label}</span>
+        <Icon className="h-3.5 w-3.5 text-ink-500 transition-colors group-hover:text-flame-400" />
+      </div>
+      <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-paper">
+        {value}
+      </p>
+      <p className="mt-1.5 text-[11px] text-faint">{hint}</p>
+    </Link>
   );
 }
 
@@ -387,11 +335,8 @@ function UsageBar({
           {format(value)} / {format(limit)}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-paper/[0.07]">
-        <div
-          className={"h-full w-full origin-left rounded-full " + (pct > 85 ? "bg-rose" : "bg-flame-500")}
-          style={{ transform: "scaleX(" + pct / 100 + ")" }}
-        />
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+        <div className="h-full rounded-full bg-flame-500" style={{ width: pct + "%" }} />
       </div>
     </div>
   );
