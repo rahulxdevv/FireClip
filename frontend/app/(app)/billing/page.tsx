@@ -66,12 +66,11 @@ export default function BillingPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        eyebrow="Account"
         title="Plan & usage"
         description="Limits and usage here come from real pipeline records. Checkout only appears when a payment provider is configured on this instance."
         actions={
           <Badge tone="flame">
-            {data.plan_name} · {data.status}
+            {data.plan_name}, {data.status}
           </Badge>
         }
       />
@@ -84,13 +83,13 @@ export default function BillingPage() {
               <p className="mt-1 text-[24px] font-semibold">{data.plan_name}</p>
               <p className="mt-0.5 text-[11.5px] capitalize text-faint">
                 {paid
-                  ? data.interval + "ly billing" + (data.renews_at ? " · renews " + new Date(data.renews_at).toLocaleDateString() : "")
+                  ? data.interval + "ly billing" + (data.renews_at ? ", renews " + new Date(data.renews_at).toLocaleDateString() : "")
                   : data.payment_provider.available
                     ? "No active subscription"
-                    : "Self-hosted · no payment provider connected"}
+                    : "Self-hosted, no payment provider connected"}
               </p>
             </div>
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-flame-500/12 text-flame-500">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-control)] bg-flame-500/12 text-flame-500">
               <Sparkles className="h-4 w-4" />
             </span>
           </div>
@@ -128,7 +127,7 @@ export default function BillingPage() {
                   {data.usage.clips_this_month} / {data.limits.clips_per_month}
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/7">
+              <div className="h-1.5 overflow-hidden rounded-full bg-paper/7">
                 <div className="h-full rounded-full bg-flame-500" style={{ width: Math.max(1, clipPct) + "%" }} />
               </div>
             </div>
@@ -139,11 +138,11 @@ export default function BillingPage() {
                   {data.usage.render_minutes_this_month.toFixed(1)} / {data.limits.render_minutes_per_month}
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/7">
+              <div className="h-1.5 overflow-hidden rounded-full bg-paper/7">
                 <div className="h-1.5 rounded-full bg-ember" style={{ width: Math.max(1, renderPct) + "%" }} />
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-white/7 pt-3 text-[11.5px]">
+            <div className="flex items-center justify-between border-t border-paper/7 pt-3 text-[11.5px]">
               <span className="text-faint">Storage used</span>
               <span className="font-mono text-muted">{formatBytes(data.usage.storage_bytes)}</span>
             </div>
@@ -156,14 +155,14 @@ export default function BillingPage() {
           title="Plans"
           description="Switch at any time. Existing work stays in the workspace."
           action={
-            <div className="flex rounded-lg border border-white/10 p-0.5">
+            <div className="flex rounded-[var(--radius-control)] border border-paper/10 p-0.5">
               {(["month", "year"] as const).map((option) => (
                 <button
                   key={option}
                   onClick={() => setInterval(option)}
                   className={
-                    "rounded-md px-2.5 py-1 text-[11px] font-medium capitalize " +
-                    (interval === option ? "bg-flame-500 text-[#160b04]" : "text-faint hover:text-paper")
+                    "rounded-[var(--radius-control)] px-2.5 py-1 text-[11px] font-medium capitalize " +
+                    (interval === option ? "bg-flame-500 text-seed" : "text-faint hover:text-paper")
                   }
                 >
                   {option}ly
@@ -180,8 +179,8 @@ export default function BillingPage() {
               <div
                 key={plan.id}
                 className={
-                  "flex flex-col rounded-xl border p-4 " +
-                  (current ? "border-flame-500/40 bg-flame-500/6" : "border-white/8 bg-ink-850/40")
+                  "flex flex-col rounded-[var(--radius-card)] border p-4 " +
+                  (current ? "border-flame-500/40 bg-flame-500/6" : "border-paper/8 bg-ink-850/40")
                 }
               >
                 <div className="flex items-start justify-between gap-2">
@@ -236,7 +235,7 @@ export default function BillingPage() {
                 ["Usage metering", "Render seconds, transcription seconds and AI units are recorded."],
                 ["Enable checkout", "Set the provider keys and price IDs in the backend environment."],
               ].map(([title, body]) => (
-                <div key={title} className="rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                <div key={title} className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/60 p-3">
                   <p className="text-[11.5px] font-medium">{title}</p>
                   <p className="mt-1 text-[10.5px] leading-relaxed text-faint">{body}</p>
                 </div>
@@ -255,13 +254,13 @@ export default function BillingPage() {
         {data.invoices.length === 0 ? (
           <p className="px-5 py-6 text-[12px] text-faint">No invoices yet.</p>
         ) : (
-          <div className="divide-y divide-white/6">
+          <div className="divide-y divide-paper/6">
             {data.invoices.map((invoice) => (
               <div key={invoice.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-[12.5px]">{invoice.number || invoice.id}</p>
                   <p className="font-mono text-[10px] text-faint">
-                    {new Date(invoice.created_at).toLocaleDateString()} · {invoice.status}
+                    {new Date(invoice.created_at).toLocaleDateString()}, {invoice.status}
                   </p>
                 </div>
                 <span className="font-mono text-[12px]">

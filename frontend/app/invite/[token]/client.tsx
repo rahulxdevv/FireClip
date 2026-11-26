@@ -119,7 +119,7 @@ export function InviteClient({ token }: { token: string }) {
           </span>
           <div>
             <p className="text-[13px] font-medium text-paper">{preview.workspace_name}</p>
-            <p className="font-mono text-[10.5px] text-faint">{preview.workspace_slug} · {preview.role}</p>
+            <p className="font-mono text-[10.5px] text-faint">{preview.workspace_slug}, {preview.role}</p>
           </div>
         </div>
 

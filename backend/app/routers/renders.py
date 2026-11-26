@@ -1,15 +1,23 @@
 """Render queue, pipeline jobs and export library."""
 from __future__ import annotations
 
+import os
+import tempfile
+import zipfile
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
+from starlette.background import BackgroundTask
 
+from ..config import settings
 from ..deps import RequestContext, get_context
 from ..jobs import cancel_job, create_pipeline_job, enqueue
 from ..models import EditingProject, ExportedVideo, PipelineJob, RenderJob, SourceVideo
 from ..schemas import ExportOut, RenderDetail, RenderOut
-from ..storage import get_storage
+from ..services import storage_guard
+from ..storage import get_storage, safe_filename
 from .common import export_out, get_editor, get_export, get_render, render_out
 from .media_utils import serve_key
 
@@ -104,6 +112,70 @@ def list_exports(
         .offset(offset)
     )
     return [export_out(row) for row in rows]
+
+
+@router.get("/exports/zip")
+def download_exports_zip(
+    ids: str = Query(min_length=1, max_length=2000),
+    ctx: RequestContext = Depends(get_context),
+):
+    """Bundle up to 50 finished exports into one download."""
+    ctx.require("editor")
+    wanted = list(dict.fromkeys(item.strip() for item in ids.split(",") if item.strip()))[:50]
+    if not wanted:
+        raise HTTPException(status_code=400, detail="Select at least one export")
+    rows = list(
+        ctx.db.scalars(
+            select(ExportedVideo).where(
+                ExportedVideo.workspace_id == ctx.workspace.id,
+                ExportedVideo.id.in_(wanted),
+            )
+        )
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="No finished exports matched")
+    try:
+        storage_guard.check_disk(sum(max(0, row.size_bytes) for row in rows))
+    except storage_guard.StorageGuardError as exc:
+        raise HTTPException(status_code=507, detail=str(exc)) from exc
+    storage = get_storage()
+    tmp_dir = settings.data_dir / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    fd, archive_name = tempfile.mkstemp(suffix=".zip", dir=tmp_dir)
+    os.close(fd)
+    archive = Path(archive_name)
+    used: set[str] = set()
+    try:
+        with tempfile.TemporaryDirectory(dir=tmp_dir) as workdir, zipfile.ZipFile(
+            archive, "w", compression=zipfile.ZIP_DEFLATED
+        ) as bundle:
+            for index, export in enumerate(rows, start=1):
+                if not export.storage_key or not storage.exists(export.storage_key):
+                    continue
+                name = safe_filename(export.filename or f"clip-{index}.mp4")
+                stem, dot, suffix = name.rpartition(".")
+                if not dot:
+                    stem, suffix = name, "mp4"
+                unique = f"{stem}.{suffix}"
+                counter = 2
+                while unique in used:
+                    unique = f"{stem}-{counter}.{suffix}"
+                    counter += 1
+                used.add(unique)
+                local = Path(workdir) / unique
+                storage.download_to(export.storage_key, local)
+                bundle.write(local, arcname=unique)
+        if not used:
+            raise HTTPException(status_code=404, detail="The selected files are no longer available")
+    except Exception:
+        archive.unlink(missing_ok=True)
+        raise
+    return FileResponse(
+        archive,
+        media_type="application/zip",
+        filename="fireclip-exports.zip",
+        background=BackgroundTask(archive.unlink, missing_ok=True),
+    )
 
 
 @router.get("/exports/{export_id}/download")

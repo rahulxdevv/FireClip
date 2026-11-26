@@ -40,9 +40,7 @@ export default function DocsPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Help"
-        title="Documentation"
+      <PageHeader        title="Documentation"
         description="What this build does, how it is wired, and what it deliberately does not do."
       />
 
@@ -53,8 +51,8 @@ export default function DocsPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className={`block rounded-lg px-3 py-2 text-[12px] transition-colors ${
-                  active === section.id ? "bg-white/6 text-paper" : "text-faint hover:text-paper"
+                className={`block rounded-[var(--radius-control)] px-3 py-2 text-[12px] transition-colors ${
+                  active === section.id ? "bg-paper/6 text-paper" : "text-faint hover:text-paper"
                 }`}
               >
                 {section.label}
@@ -64,7 +62,7 @@ export default function DocsPage() {
               href="/openapi"
               target="_blank"
               rel="noreferrer"
-              className="mt-2 flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] text-flame-400 hover:text-flame-500"
+              className="mt-2 flex items-center gap-1.5 rounded-[var(--radius-control)] px-3 py-2 text-[12px] text-flame-400 hover:text-flame-500"
             >
               OpenAPI explorer <ExternalLink className="h-3 w-3" />
             </a>
@@ -145,7 +143,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.1`}</CodeBlock>
             <p className="mt-3">
               Workspace keys are encrypted at rest and take precedence over environment keys. Use{" "}
-              <Link href="/ai-settings" className="doc-link">AI & transcription</Link> to test a provider - the test
+              <Link href="/ai-settings" className="doc-link">AI & transcription</Link> to test a provider. The test
               performs a real request and reports latency or the provider&apos;s error.
             </p>
           </Doc>
@@ -153,10 +151,10 @@ OLLAMA_MODEL=llama3.1`}</CodeBlock>
           <Doc id="transcription" title="Transcription">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-[11.5px]">
-                <thead className="border-b border-white/8 text-faint">
+                <thead className="border-b border-paper/8 text-faint">
                   <tr><th className="py-2 pr-4 font-medium">Engine</th><th className="py-2 pr-4 font-medium">Where</th><th className="py-2 font-medium">Notes</th></tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 text-muted">
+                <tbody className="divide-y divide-paper/5 text-muted">
                   <tr><td className="py-2 pr-4 font-mono">whisper</td><td className="py-2 pr-4">local</td><td className="py-2">openai-whisper package; slower, CPU-friendly models available.</td></tr>
                   <tr><td className="py-2 pr-4 font-mono">faster_whisper</td><td className="py-2 pr-4">local</td><td className="py-2">CTranslate2 backend, optional extra, default in Docker.</td></tr>
                   <tr><td className="py-2 pr-4 font-mono">openai</td><td className="py-2 pr-4">cloud</td><td className="py-2">25MB request limit; requires OPENAI_API_KEY.</td></tr>
@@ -272,7 +270,7 @@ curl -X POST https://your-host/api/videos/upload \\
               <p className="text-[12px] font-medium">Deployment guides</p>
               <p className="mt-0.5 text-[11px] text-faint">Docker Compose, environment variables and architecture.</p>
             </div>
-            <Badge tone="flame">README.md · Docker · Render</Badge>
+            <Badge tone="flame">Self-hosted stack</Badge>
           </Panel>
         </div>
       </div>
@@ -303,7 +301,7 @@ function Doc({
 
 function CodeBlock({ children }: { children: React.ReactNode }) {
   return (
-    <pre className="mt-3 overflow-x-auto rounded-lg border border-white/8 bg-ink-950/70 p-3 font-mono text-[10.5px] leading-relaxed text-muted">
+    <pre className="mt-3 overflow-x-auto rounded-[var(--radius-control)] border border-paper/8 bg-ink-950/70 p-3 font-mono text-[10.5px] leading-relaxed text-muted">
       {children}
     </pre>
   );

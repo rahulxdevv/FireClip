@@ -71,6 +71,8 @@ export interface VideoDetail extends Video {
   approved_clip_count: number;
   analysis_provider: string | null;
   metadata: Record<string, unknown> | null;
+  static_ranges?: { start_ms: number; end_ms: number }[];
+  static_screen_seconds?: number;
 }
 
 export interface Word {
@@ -228,7 +230,7 @@ export interface EditorProject {
     segments?: Array<{ start_ms: number; end_ms: number; text: string }>;
   };
   layout: {
-    mode?: "fill" | "fit" | "facecam";
+    mode?: "fill" | "fit" | "facecam" | "gameplay";
     position?: string;
     size?: number;
     x?: number;
@@ -513,6 +515,8 @@ export interface SystemStatus {
   database: string;
   job_runner: string;
   ytdlp: boolean;
+  workspace_storage_bytes: number;
+  disk_free_gb: number | null;
 }
 
 export interface Member {

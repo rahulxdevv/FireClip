@@ -79,9 +79,7 @@ export default function ClipsPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Create"
-        title="Clip discovery"
+      <PageHeader        title="Clip discovery"
         description="Review every candidate the analysis found across this workspace. Approve what earns a render, reject what does not."
         actions={
           <div className="flex items-center gap-2">

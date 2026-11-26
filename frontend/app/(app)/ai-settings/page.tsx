@@ -18,6 +18,7 @@ import {
 import { useApi } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/stores";
+import { formatBytes } from "@/lib/format";
 import type { AIProvider, SystemStatus } from "@/lib/types";
 
 interface EngineStatus {
@@ -53,9 +54,7 @@ export default function AiSettingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        eyebrow="Settings"
-        title="AI & transcription"
+      <PageHeader        title="AI & transcription"
         description="Keys are encrypted at rest with AES-GCM. The browser only ever learns whether a provider is configured."
         actions={
           <Button size="sm" variant="outline" onClick={() => { providers.refresh(); engines.refresh(); status.refresh(); }}>
@@ -103,7 +102,7 @@ export default function AiSettingsPage() {
           title="Transcription engines"
           description="Available engines come from the server environment. Nothing is simulated."
         />
-        <div className="divide-y divide-white/6">
+        <div className="divide-y divide-paper/6">
           {Object.entries(engines.data?.engines || {}).map(([name, engine]) => (
             <div key={name} className="flex flex-wrap items-start justify-between gap-3 px-5 py-3.5">
               <div>
@@ -114,7 +113,7 @@ export default function AiSettingsPage() {
                 </div>
                 <p className="mt-1 text-[11.5px] text-faint">
                   model <code className="font-mono">{engine.model}</code>
-                  {engine.note ? ` - ${engine.note}` : ""}
+                  {engine.note ? `, ${engine.note}` : ""}
                 </p>
               </div>
             </div>
@@ -140,8 +139,13 @@ export default function AiSettingsPage() {
             ["Redis", status.data?.redis ? "connected" : "not configured"],
             ["Database", status.data?.database || "-"],
             ["Storage", status.data?.storage || "-"],
+            ["Workspace media", status.data ? formatBytes(status.data.workspace_storage_bytes) : "-"],
+            [
+              "Disk free",
+              status.data?.disk_free_gb != null ? `${status.data.disk_free_gb.toFixed(1)} GB` : "managed by S3",
+            ],
           ].map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-ink-850/60 px-3 py-2 text-[11.5px]">
+            <div key={label} className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/60 px-3 py-2 text-[11.5px]">
               <span className="text-faint">{label}</span>
               <span className="truncate font-mono text-muted">{value}</span>
             </div>
@@ -152,9 +156,9 @@ export default function AiSettingsPage() {
       <div className="mt-6">
         <Alert tone="info" title="Provider notes">
           <ul className="mt-1 space-y-1">
-            <li>• OpenAI, Anthropic and Gemini use environment keys or a workspace key saved below.</li>
-            <li>• Ollama is only used when explicitly selected as default - never as an automatic fallback.</li>
-            <li>• Hosted Whisper accepts up to 25MB per request; use faster-whisper locally for long recordings.</li>
+            <li>OpenAI, Anthropic and Gemini use environment keys or a workspace key saved below.</li>
+            <li>Ollama is only used when explicitly selected as default, never as an automatic fallback.</li>
+            <li>Hosted Whisper accepts up to 25MB per request; use faster-whisper locally for long recordings.</li>
           </ul>
         </Alert>
       </div>
@@ -175,7 +179,7 @@ function StatusChip({
 }) {
   return (
     <Panel className="flex items-center gap-3 px-4 py-3">
-      <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${healthy ? "bg-mint/10 text-mint" : "bg-rose/10 text-rose"}`}>
+      <span className={`flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] ${healthy ? "bg-mint/10 text-mint" : "bg-rose/10 text-rose"}`}>
         {icon}
       </span>
       <div>
@@ -271,7 +275,7 @@ function ProviderCard({
       </div>
 
       {result ? (
-        <div className={`mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-[11.5px] ${
+        <div className={`mt-3 flex items-start gap-2 rounded-[var(--radius-control)] border px-3 py-2 text-[11.5px] ${
           result.ok ? "border-mint/25 bg-mint/8 text-mint" : "border-rose/25 bg-rose/8 text-rose"
         }`}>
           {result.ok ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5" /> : <TriangleAlert className="mt-0.5 h-3.5 w-3.5" />}

@@ -94,15 +94,18 @@ def video_detail(db: Session, video: SourceVideo) -> dict:
         .order_by(AiAnalysis.created_at.desc())
     )
     data = video_out(video)
+    extra = video.metadata_extra or {}
+    metadata = dict(video.metadata_row.raw_json or {}) if video.metadata_row else {}
+    metadata.update(extra)
     data.update(
-        {
-            "has_transcript": bool(transcript),
+        {            "has_transcript": bool(transcript),
             "transcript_language": transcript.language if transcript else None,
             "clip_count": len(clips),
             "approved_clip_count": sum(1 for clip in clips if clip.status == "approved"),
             "analysis_provider": analysis.provider if analysis else None,
-            "metadata": (video.metadata_row.raw_json if video.metadata_row else None),
-        }
+            "metadata": metadata or None,
+            "static_ranges": extra.get("static_ranges") or [],
+            "static_screen_seconds": extra.get("static_screen_seconds") or 0,        }
     )
     return data
 

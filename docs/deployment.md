@@ -63,7 +63,7 @@ COOKIE_SECURE=true
 POSTGRES_PASSWORD=<a real password>
 ```
 
-The web container proxies `/api` to the internal `api` service, so you do not need a public API domain. If you enable publishing, use the same public web origin as `BACKEND_PUBLIC_URL`; the OAuth callback path is proxied by Next.js. Do not enable `AUTO_MIGRATE=true` with Compose, because the API entrypoint already runs Alembic.
+The web container proxies `/api` and `/health` to the internal API at `http://fireclip-api:API_CONTAINER_PORT` (the unique network alias of the `api` service), so you do not need a public API domain. The alias exists because Dokploy attaches every project to the shared `dokploy-network`, where a generic `api` name can belong to another app's container; the generic name still resolves inside this stack, but only `fireclip-api` is guaranteed to be this stack's API. If you enable publishing, use the same public web origin as `BACKEND_PUBLIC_URL`; the OAuth callback path is proxied by Next.js. Do not enable `AUTO_MIGRATE=true` with Compose, because the API entrypoint already runs Alembic.
 
 ### Single application: root Dockerfile
 

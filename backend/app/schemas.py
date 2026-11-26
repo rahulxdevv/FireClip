@@ -326,7 +326,8 @@ class VideoDetail(VideoOut):
     approved_clip_count: int = 0
     analysis_provider: str | None = None
     metadata: dict | None = None
-
+    static_ranges: list[dict] = Field(default_factory=list)
+    static_screen_seconds: float = 0
 
 class ImportUrlRequest(BaseModel):
     url: str = Field(min_length=8, max_length=2000)
@@ -368,6 +369,7 @@ class AnalyzeRequest(BaseModel):
     target_duration_ms: int = Field(default=45000, ge=5000, le=180000)
     clip_count: int = Field(default=6, ge=1, le=20)
     replace_existing: bool = True
+    ignore_static: bool = False
 
 
 class WordOut(BaseModel):
@@ -587,6 +589,10 @@ class CaptionStyleCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     config: dict
 
+
+class CaptionStyleUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    config: dict | None = None
 
 class EditorCreate(BaseModel):
     clip_id: str | None = None
@@ -860,6 +866,8 @@ class SystemStatus(BaseModel):
     database: str
     job_runner: str
     ytdlp: bool
+    workspace_storage_bytes: int = 0
+    disk_free_gb: float | None = None
 
 
 class DashboardOut(BaseModel):

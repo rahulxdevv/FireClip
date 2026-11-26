@@ -32,6 +32,15 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    # The web proxy reaches the API by this name. "api" alone is ambiguous:
+    # several Compose projects sharing one Docker network (Dokploy attaches
+    # every app to dokploy-network) can each own an "api" container, and the
+    # proxy may land on the wrong one. The unique alias keeps the rewrite
+    # pinned to this stack.
+    networks:
+      default:
+        aliases:
+          - fireclip-api
     environment: &backend_env
       APP_ENV: production
       DEBUG: "false"
@@ -102,6 +111,12 @@ services:
       S3_PREFIX: ${S3_PREFIX:-fireclip}
       MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-4096}
+      MIN_FREE_DISK_GB: ${MIN_FREE_DISK_GB:-2}
+      MAX_WORKSPACE_STORAGE_GB: ${MAX_WORKSPACE_STORAGE_GB:-0}
+      STATIC_SCREEN_FILTER: ${STATIC_SCREEN_FILTER:-true}
+      STATIC_SCREEN_THRESHOLD: ${STATIC_SCREEN_THRESHOLD:-1.0}
+      STATIC_SCREEN_MIN_SECONDS: ${STATIC_SCREEN_MIN_SECONDS:-6}
+      STATIC_SCREEN_MAX_OVERLAP: ${STATIC_SCREEN_MAX_OVERLAP:-0.35}
       PLAN_CLIP_LIMIT: ${PLAN_CLIP_LIMIT:-500}
       PLAN_RENDER_MINUTES: ${PLAN_RENDER_MINUTES:-600}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-en}
@@ -144,12 +159,13 @@ services:
     build:
       context: ./frontend
       args:
-        # Internal API origin baked into Next rewrites. Keep this equal to
-        # API_CONTAINER_PORT; changing it triggers a web rebuild.
-        API_BASE_URL: http://api:${API_CONTAINER_PORT:-8000}
+        # Internal API origin baked into Next rewrites. Keep the port equal to
+        # API_CONTAINER_PORT; changing it triggers a web rebuild. The host is
+        # the unique alias from the api service, not the generic "api".
+        API_BASE_URL: http://fireclip-api:${API_CONTAINER_PORT:-8000}
     restart: unless-stopped
     environment:
-      API_BASE_URL: http://api:${API_CONTAINER_PORT:-8000}
+      API_BASE_URL: http://fireclip-api:${API_CONTAINER_PORT:-8000}
       # WEB_CONTAINER_PORT is the port inside the Compose network. WEB_PORT is
       # the optional host port. A proxy or Dokploy domain targets the container
       # port, not WEB_PORT.

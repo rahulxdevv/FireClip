@@ -16,12 +16,12 @@ export function ToastViewport() {
           <div
             key={item.id}
             className={cn(
-              "pointer-events-auto flex items-start gap-3 rounded-xl border bg-ink-850/95 px-4 py-3 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)] backdrop-blur animate-rise",
+              "pointer-events-auto flex items-start gap-3 rounded-[var(--radius-card)] border bg-ink-850 px-4 py-3 shadow-dialog animate-rise",
               item.variant === "success"
                 ? "border-mint/25"
                 : item.variant === "error"
                   ? "border-rose/30"
-                  : "border-white/12",
+                  : "border-paper/12",
             )}
           >
             <Icon

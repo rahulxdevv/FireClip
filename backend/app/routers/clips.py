@@ -153,7 +153,7 @@ def merge_clips(payload: dict, ctx: RequestContext = Depends(get_context)):
     video = ctx.db.get(SourceVideo, ordered[0].video_id)
     title = order_title = ordered[0].title
     if len(ordered) > 1:
-        title = f"{order_title.rsplit(' - part', 1)[0]} - merged"
+        title = f"{order_title.rsplit(' (part', 1)[0]} (merged)"
     merged = CandidateClip(
         workspace_id=ctx.workspace.id,
         video_id=ordered[0].video_id,

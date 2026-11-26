@@ -87,7 +87,6 @@ export default function SchedulePage() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        eyebrow="Distribute"
         title="Schedule"
         description="Every scheduled and published post in one calendar. Direct links open the live post on each platform."
         actions={
@@ -105,7 +104,7 @@ export default function SchedulePage() {
           ["Connected accounts", connected.length],
         ].map(([label, value]) => (
           <Panel key={String(label)} className="p-4">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-faint">{label}</p>
+            <p className="text-[11px] font-semibold text-faint">{label}</p>
             <p className="mt-1 font-display text-2xl">{value}</p>
           </Panel>
         ))}
@@ -124,14 +123,14 @@ export default function SchedulePage() {
           description="Scheduled posts move to the publishing queue when their time arrives."
           action={<Badge tone="neutral">{all.length} posts</Badge>}
         />
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/6 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-paper/6 px-4 py-3">
           <div className="flex flex-wrap gap-1">
             {views.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className={`rounded-md px-2.5 py-1.5 text-[11.5px] transition-colors ${
-                  view === item.id ? "bg-white/10 text-paper" : "text-faint hover:bg-white/5 hover:text-paper"
+                className={`rounded-[var(--radius-control)] px-2.5 py-1.5 text-[11.5px] transition-colors ${
+                  view === item.id ? "bg-paper/10 text-paper" : "text-faint hover:bg-paper/5 hover:text-paper"
                 }`}
               >
                 {item.label} <span className="text-[10px] opacity-60">{item.count}</span>
@@ -165,7 +164,7 @@ export default function SchedulePage() {
             action={<Link href="/publish"><Button size="sm" variant="outline">Open publishing</Button></Link>}
           />
         ) : (
-          <div className="divide-y divide-white/6">
+          <div className="divide-y divide-paper/6">
             {filtered.map((job) => (
               <div key={job.id} className="px-4 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -194,7 +193,7 @@ export default function SchedulePage() {
                         href={job.external_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] text-paper hover:bg-white/5"
+                        className="inline-flex items-center gap-1 rounded-[var(--radius-control)] border border-paper/10 px-2.5 py-1.5 text-[11px] text-paper hover:bg-paper/5"
                       >
                         <ExternalLink className="h-3 w-3" /> Open post
                       </a>

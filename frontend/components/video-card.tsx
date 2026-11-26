@@ -12,7 +12,7 @@ export function VideoCard({ video }: { video: Video }) {
   return (
     <Link
       href={`/videos/${video.id}`}
-      className="group overflow-hidden rounded-xl border border-white/8 bg-ink-900 transition-colors hover:border-white/16"
+      className="group overflow-hidden rounded-[var(--radius-card)] border border-paper/8 bg-ink-900 transition-colors hover:border-paper/16"
     >
       <div className="relative aspect-video overflow-hidden bg-ink-850">
         {video.thumbnail_key ? (
@@ -29,10 +29,10 @@ export function VideoCard({ video }: { video: Video }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-paper backdrop-blur">
+          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-paper">
             {formatDuration(video.duration_seconds)}
           </span>
-          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-paper backdrop-blur">
+          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-paper">
             {video.width}×{video.height}
           </span>
         </div>
@@ -40,7 +40,7 @@ export function VideoCard({ video }: { video: Video }) {
           <VideoStatusBadge status={video.status} />
         </span>
         <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60">
             <Play className="ml-0.5 h-4 w-4 fill-paper text-paper" />
           </span>
         </span>
@@ -49,11 +49,9 @@ export function VideoCard({ video }: { video: Video }) {
         <p className="truncate text-[13.5px] font-medium text-paper">{video.title}</p>
         <p className="mt-1 flex items-center gap-1.5 text-[11.5px] text-faint">
           <span className="capitalize">{video.source_type === "upload" ? "Uploaded" : video.source_type}</span>
-          <span>·</span>
           <span>{relativeTime(video.created_at)}</span>
           {video.has_audio ? null : (
             <>
-              <span>·</span>
               <span className="text-ember">No audio</span>
             </>
           )}

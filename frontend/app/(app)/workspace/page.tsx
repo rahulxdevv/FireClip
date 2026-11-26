@@ -157,10 +157,8 @@ export default function WorkspacePage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        eyebrow="Settings"
-        title="Workspace"
-        description={`${workspace.name} · ${workspace.plan} plan · ${workspace.member_count} members`}
+      <PageHeader        title="Workspace"
+        description={`${workspace.name}, ${workspace.plan} plan, ${workspace.member_count} members`}
         actions={
           <Badge tone="flame">{workspace.role}</Badge>
         }
@@ -177,7 +175,7 @@ export default function WorkspacePage() {
               Save
             </Button>
           </form>
-          <div className="grid gap-3 border-t border-white/7 px-5 py-4 text-[11.5px] sm:grid-cols-3">
+          <div className="grid gap-3 border-t border-paper/7 px-5 py-4 text-[11.5px] sm:grid-cols-3">
             <div><p className="text-faint">Slug</p><p className="mt-0.5 font-mono text-muted">{workspace.slug}</p></div>
             <div><p className="text-faint">Created</p><p className="mt-0.5 text-muted">{formatDateTime(workspace.created_at)}</p></div>
             <div><p className="text-faint">Clip allowance</p><p className="mt-0.5 text-muted">{workspace.monthly_clip_limit} / month</p></div>
@@ -198,15 +196,15 @@ export default function WorkspacePage() {
           {members.loading && !members.data ? (
             <div className="p-4"><PageSkeleton /></div>
           ) : (
-            <div className="divide-y divide-white/6">
+            <div className="divide-y divide-paper/6">
               {(members.data || []).map((member) => (
                 <div key={member.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-flame-500/12 font-mono text-[11px] text-flame-400">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] bg-flame-500/12 font-mono text-[11px] text-flame-400">
                     {(member.name || member.email).slice(0, 2).toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12.5px] text-paper">{member.name || member.email}</p>
-                    <p className="truncate font-mono text-[10px] text-faint">{member.email} · joined {relativeTime(member.created_at)}</p>
+                    <p className="truncate text-[10.5px] text-faint">{member.email}, joined {relativeTime(member.created_at)}</p>
                   </div>
                   {member.role === "owner" ? (
                     <Badge tone="flame">owner</Badge>
@@ -249,14 +247,14 @@ export default function WorkspacePage() {
             {(invites.data || []).length === 0 ? (
               <p className="px-5 py-5 text-[12px] text-faint">No pending invitations.</p>
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {(invites.data || []).map((invite) => (
                   <div key={invite.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                     <Mail className="h-4 w-4 text-faint" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12.5px] text-paper">{invite.email}</p>
-                      <p className="font-mono text-[10px] text-faint">
-                        {invite.role} · expires {relativeTime(invite.expires_at)}
+                      <p className="text-[10.5px] text-faint">
+                        {invite.role}, expires {relativeTime(invite.expires_at)}
                       </p>
                     </div>
                     <Button
@@ -287,15 +285,17 @@ export default function WorkspacePage() {
           {(keys.data || []).length === 0 ? (
             <p className="px-5 py-6 text-[12px] text-faint">No API keys yet.</p>
           ) : (
-            <div className="divide-y divide-white/6">
+            <div className="divide-y divide-paper/6">
               {(keys.data || []).map((key) => (
                 <div key={key.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                   <KeyRound className="h-4 w-4 text-faint" />
                   <div className="min-w-0 flex-1">
                     <p className="text-[12.5px] text-paper">{key.name}</p>
-                    <p className="font-mono text-[10px] text-faint">
-                      fk_{key.prefix}_… · created {relativeTime(key.created_at)} · last used {key.last_used_at ? relativeTime(key.last_used_at) : "never"}
+                    <p className="text-[10.5px] text-faint">
+                      Created {relativeTime(key.created_at)}, last used{" "}
+                      {key.last_used_at ? relativeTime(key.last_used_at) : "never"}
                     </p>
+                    <p className="mt-0.5 font-mono text-[10px] text-faint">fk_{key.prefix}_…</p>
                   </div>
                   {key.revoked_at ? (
                     <Badge tone="rose">revoked</Badge>
@@ -308,7 +308,7 @@ export default function WorkspacePage() {
               ))}
             </div>
           )}
-          <div className="border-t border-white/7 px-5 py-3">
+          <div className="border-t border-paper/7 px-5 py-3">
             <p className="text-[10.5px] leading-relaxed text-faint">
               Authenticate with <code className="font-mono text-muted">X-API-Key: fk_…</code>. Keys are stored as
               SHA-256 hashes and are scoped to this workspace.
@@ -327,7 +327,7 @@ export default function WorkspacePage() {
           ) : (audit.data || []).length === 0 ? (
             <p className="px-5 py-6 text-[12px] text-faint">No audit entries visible.</p>
           ) : (
-            <div className="max-h-80 divide-y divide-white/6 overflow-y-auto">
+            <div className="max-h-80 divide-y divide-paper/6 overflow-y-auto">
               {(audit.data || []).map((entry) => (
                 <div key={entry.id} className="flex flex-wrap items-center gap-2 px-5 py-2.5">
                   <span className="min-w-0 flex-1 text-[11.5px] text-muted">
@@ -360,9 +360,9 @@ export default function WorkspacePage() {
           </Field>
           <Field label="Role">
             <Select value={addForm.role} onChange={(event) => setAddForm({ ...addForm, role: event.target.value })}>
-              <option value="editor">Editor - full content access</option>
-              <option value="admin">Admin - manage members and settings</option>
-              <option value="viewer">Viewer - read only</option>
+              <option value="editor">Editor (full content access)</option>
+              <option value="admin">Admin (manage members and settings)</option>
+              <option value="viewer">Viewer (read only)</option>
             </Select>
           </Field>
         </form>
@@ -386,7 +386,7 @@ export default function WorkspacePage() {
       >
         {createdKey ? (
           <div className="space-y-3">
-            <div className="break-all rounded-lg border border-flame-500/30 bg-ink-850 p-3 font-mono text-[12px] text-flame-400">
+            <div className="break-all rounded-[var(--radius-control)] border border-flame-500/30 bg-ink-850 p-3 font-mono text-[12px] text-flame-400">
               {createdKey}
             </div>
             <Button

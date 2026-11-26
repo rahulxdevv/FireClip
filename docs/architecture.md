@@ -44,15 +44,15 @@ The same task callables run through ARQ in Docker and inline locally, so the UI 
 | Transcription | faster-whisper, openai-whisper, hosted OpenAI Whisper, word timestamps, editable segments | Keys / install |
 | Speakers | Off, pause-based estimate (labelled), optional pyannote; manual speaker names | Ready / optional |
 | Campaigns | Reusable brief, target length/count/score, brand kit, caption style/headline, auto-approve/auto-render/auto-publish policy, JSON campaign discovery and one-click onboarding | Ready / feed optional |
-| Clip discovery | Explainable heuristic scoring + OpenAI, Anthropic, Gemini or Ollama | Ready / Keys |
+| Clip discovery | Explainable heuristic scoring with still-screen filtering, plus OpenAI, Anthropic, Gemini or Ollama | Ready / Keys |
 | Clip review | Approve/reject, manual cuts, merge, bulk actions, threaded comments with resolve state, content generation | Ready |
-| Editor | Timeline, trim, fill/fit/face-cam layouts, face-based auto-focus, caption presets, headings, translated captions, overlays, music, fades, undo/redo | Ready / translation keys |
+| Editor | Timeline, trim, fill/fit, face-cam and gameplay layouts, face-based auto-focus, full-look presets, caption styles, headings, translated captions, overlays, music, fades, undo/redo | Ready / translation keys |
 | Rendering | 9:16, 1:1, 16:9, 4:5 presets; MP4/MOV/WebM; burned ASS captions; loudness normalization | Ready |
 | Queue | Progress, cancel, retry, monthly clip and render-minute limits, ARQ worker or inline runner | Ready |
-| Exports | Download library, thumbnails, HTTP Range streaming, public share links with password/expiry | Ready |
+| Exports | Download library, thumbnails, bulk ZIP download, HTTP Range streaming, public share links with password/expiry | Ready |
 | Publishing | YouTube, Facebook, Instagram Reels and TikTok uploads, scheduling, retries, campaign auto-publish with score floor and preferred UTC slot | Keys |
 | Analytics | Platform metrics sync plus clearly labelled manual measurement | Ready / Keys |
-| Live | Record public YouTube/Twitch/Kick live streams via yt-dlp; streamer roster, optional auto-record and campaign auto-clip | Ready / environment |
+| Live | Discover public creators, record YouTube/Twitch/Kick live streams via yt-dlp; streamer roster, optional auto-record and campaign auto-clip | Ready / environment |
 | Schedule | One timeline for queued, scheduled, published and failed posts, with cancel, retry and direct post links | Ready |
 | Dashboard | Usage, processing jobs, recent activity, notifications | Ready |
 | Billing | Enforced clip/render limits, usage/storage metering, free/starter/studio/agency catalog, Stripe checkout and portal | Keys |

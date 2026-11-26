@@ -56,7 +56,7 @@ export default function PublicSharePage() {
       <header className="border-b border-white/8">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
           <Logo size={30} />
-          <span className="font-mono text-[10.5px] uppercase tracking-widest text-faint">Shared clip</span>
+          <span className="text-[11.5px] font-semibold text-flame-400">Shared clip</span>
         </div>
       </header>
 
@@ -114,7 +114,7 @@ export default function PublicSharePage() {
                 )}
               </div>
               {share.expires_at ? (
-                <p className="mt-3 text-center font-mono text-[10.5px] text-faint">
+                <p className="mt-3 text-center text-[10.5px] text-faint">
                   Link expires {new Date(share.expires_at).toLocaleDateString()}
                 </p>
               ) : null}
@@ -122,8 +122,7 @@ export default function PublicSharePage() {
 
             <aside className="space-y-4">
               <div>
-                <p className="label-caps mb-1.5">Clip</p>
-                <h1 className="text-[22px] font-semibold leading-tight">{share.title || share.filename}</h1>
+                <h1 className="display text-[26px] text-paper">{share.title || share.filename}</h1>
               </div>
               <dl className="space-y-2 border-y border-white/8 py-4 text-[12px]">
                 {share.duration_ms ? (
@@ -136,7 +135,7 @@ export default function PublicSharePage() {
                   <div className="flex justify-between"><dt className="text-faint">File size</dt><dd className="font-mono text-muted">{formatBytes(share.size_bytes)}</dd></div>
                 ) : null}
                 {share.format ? (
-                  <div className="flex justify-between"><dt className="text-faint">Format</dt><dd className="font-mono uppercase text-muted">{share.format}</dd></div>
+                  <div className="flex justify-between"><dt className="text-faint">Format</dt><dd className="font-mono text-muted">{share.format}</dd></div>
                 ) : null}
               </dl>
               {share.download_url ? (

@@ -75,13 +75,13 @@ const NAV = [
       { href: "/billing", label: "Plan & usage", icon: CreditCard },
       { href: "/webhooks", label: "Webhooks", icon: Webhook },
       { href: "/settings", label: "My settings", icon: Settings },
-      { href: "/docs", label: "Help & docs", icon: BookOpen },
     ],
   },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const setSession = useSessionStore((state) => state.setSession);
@@ -108,14 +108,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     setMobileOpen(false);
-  }, [usePathname()]);
+  }, [pathname]);
 
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-950">
-        <div className="flex flex-col items-center gap-4">
-          <Logo size={40} />
-          <span className="h-1 w-24 overflow-hidden rounded-full bg-white/8">
+        <div className="flex flex-col items-center gap-5">
+          <Logo size={38} />
+          <span className="h-[2px] w-28 overflow-hidden rounded-full bg-paper/[0.08]">
             <span className="block h-full w-1/2 animate-[soften_1.2s_ease-in-out_infinite_alternate] rounded-full bg-flame-500" />
           </span>
         </div>
@@ -126,11 +126,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-ink-950">
       <button
-        className="fixed left-4 top-4 z-50 rounded-lg border border-white/10 bg-ink-900 p-2 lg:hidden"
+        className="fixed left-4 top-3.5 z-50 rounded-[var(--radius-control)] border border-paper/10 bg-ink-900 p-2 text-muted lg:hidden"
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-4.5 w-4.5" />
       </button>
 
       {mobileOpen ? (
@@ -139,13 +139,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[252px] flex-col border-r border-white/7 bg-ink-900 transition-transform duration-200 lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[258px] flex-col border-r border-paper/[0.06] bg-ink-900 transition-transform duration-200 lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center justify-between px-5">
+        <div className="flex h-[60px] items-center justify-between px-4">
           <Link href="/dashboard" aria-label="FireClip dashboard">
-            <Logo />
+            <Logo size={28} />
           </Link>
           <button
             className="rounded p-1 text-faint hover:text-paper lg:hidden"
@@ -156,15 +156,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <div className="px-3">
+        <div className="px-3 pb-1">
           <WorkspaceSwitcher />
         </div>
 
-        <nav className="mt-5 flex-1 space-y-5 overflow-y-auto px-3 pb-6">
+        <nav className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto px-2.5 pb-4">
           {NAV.map((section) => (
             <div key={section.group}>
-              <p className="label-caps px-2 pb-1.5">{section.group}</p>
-              <div className="space-y-0.5">
+              <p className="px-2.5 pb-1 text-[11px] font-semibold text-faint/80">{section.group}</p>
+              <div className="space-y-px">
                 {section.items.map((item) => (
                   <NavLink key={item.href} href={item.href} label={item.label} Icon={item.icon} />
                 ))}
@@ -176,15 +176,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SystemFooter />
       </aside>
 
-      <div className="lg:pl-[252px]">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-3 border-b border-white/7 bg-ink-950/85 px-4 backdrop-blur-md sm:px-7">
-          <div className="mr-auto pl-10 lg:pl-0">
+      <div className="lg:pl-[258px]">
+        <header className="sticky top-0 z-30 flex h-[60px] items-center gap-3 border-b border-paper/[0.06] bg-ink-950 px-4 sm:px-6">
+          <div className="mr-auto flex min-w-0 items-center pl-10 lg:pl-0">
             <HeaderBreadcrumb />
           </div>
           <NotificationBell />
           <UserMenu />
         </header>
-        <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-7 sm:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8">{children}</main>
       </div>
     </div>
   );
@@ -200,18 +200,21 @@ function NavLink({
   Icon: React.ComponentType<{ className?: string }>;
 }) {
   const pathname = usePathname();
-  const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+  const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href + "/"));
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors",
-        active ? "bg-white/7 text-paper" : "text-muted hover:bg-white/4 hover:text-paper",
+        "group relative flex items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-[5px] text-[12.5px] transition-colors duration-150",
+        active ? "bg-paper/[0.06] text-paper" : "text-muted hover:bg-paper/[0.035] hover:text-paper",
       )}
     >
-      <Icon className={cn("h-4 w-4", active ? "text-flame-500" : "text-faint group-hover:text-muted")} />
+      {active ? (
+        <span className="absolute inset-y-1.5 left-0 w-[2px] rounded-full bg-flame-500" aria-hidden />
+      ) : null}
+      <Icon className={cn("h-[15px] w-[15px] shrink-0", active ? "text-flame-500" : "text-faint group-hover:text-muted")} />
       <span className="truncate">{label}</span>
-      {active ? <span className="ml-auto h-1 w-1 rounded-full bg-flame-500" /> : null}
     </Link>
   );
 }
@@ -227,17 +230,19 @@ function WorkspaceSwitcher() {
     <div className="relative">
       <button
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-2.5 rounded-lg border border-white/8 bg-ink-850 px-3 py-2.5 text-left transition-colors hover:border-white/16"
+        className="flex w-full items-center gap-2.5 rounded-[var(--radius-control)] border border-paper/[0.07] bg-paper/[0.03] px-2.5 py-2 text-left transition-colors hover:border-paper/[0.14] hover:bg-paper/[0.05]"
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-flame-500/15 font-mono text-[11px] font-semibold text-flame-400">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-flame-500/15 font-display text-[11px] font-semibold text-flame-400">
           {(current?.name || "F").slice(0, 2).toUpperCase()}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-medium text-paper">
+          <span className="block truncate text-[12.5px] font-semibold text-paper">
             {current?.name || "No workspace"}
           </span>
-          <span className="block text-[11px] text-faint">
-            {current ? `${current.role} · ${current.plan}` : "Create one"}
+          <span className="block truncate text-[11px] text-faint">
+            {current
+              ? current.role.charAt(0).toUpperCase() + current.role.slice(1) + ", " + current.plan + " plan"
+              : "Create one"}
           </span>
         </span>
         <ChevronDown className="h-3.5 w-3.5 text-faint" />
@@ -245,7 +250,7 @@ function WorkspaceSwitcher() {
       {open ? (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-lg border border-white/10 bg-ink-850 py-1 shadow-2xl">
+          <div className="absolute left-0 right-0 top-full z-20 mt-1.5 overflow-hidden rounded-[var(--radius-card)] border border-paper/10 bg-ink-850 p-1">
             {workspaces.map((workspace) => (
               <button
                 key={workspace.id}
@@ -253,7 +258,7 @@ function WorkspaceSwitcher() {
                   setActive(workspace.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] text-muted transition-colors hover:bg-white/5 hover:text-paper"
+                className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-control)] px-2.5 py-2 text-left text-[12.5px] text-muted transition-colors hover:bg-paper/[0.06] hover:text-paper"
               >
                 <span className="truncate">{workspace.name}</span>
                 {workspace.id === activeId ? <Check className="h-3.5 w-3.5 text-flame-500" /> : null}
@@ -261,7 +266,7 @@ function WorkspaceSwitcher() {
             ))}
             <Link
               href="/workspace"
-              className="mt-1 block border-t border-white/8 px-3 py-2 text-[12px] text-faint hover:text-paper"
+              className="mt-1 block border-t border-paper/[0.07] px-2.5 py-2 text-[11.5px] text-faint hover:text-paper"
               onClick={() => setOpen(false)}
             >
               Manage workspaces
@@ -307,12 +312,12 @@ function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen((value) => !value)}
-        className="relative rounded-lg border border-white/8 bg-ink-900 p-2 text-muted transition-colors hover:text-paper"
+        className="relative rounded-[var(--radius-control)] border border-paper/[0.07] bg-paper/[0.02] p-2 text-muted transition-colors hover:border-paper/[0.14] hover:text-paper"
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-flame-500 px-1 font-mono text-[9px] font-bold text-[#160b04]">
+          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-flame-500 px-1 text-[9px] font-bold text-seed">
             {unread}
           </span>
         ) : null}
@@ -320,9 +325,9 @@ function NotificationBell() {
       {open ? (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-0 top-full z-20 mt-2 w-[340px] overflow-hidden rounded-xl border border-white/10 bg-ink-850 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
-              <p className="text-[13px] font-medium">Notifications</p>
+          <div className="absolute right-0 top-full z-20 mt-2 w-[340px] overflow-hidden rounded-[var(--radius-card)] border border-paper/10 bg-ink-850">
+            <div className="flex items-center justify-between border-b border-paper/[0.07] px-4 py-3">
+              <p className="text-[13px] font-semibold">Notifications</p>
               {unread > 0 ? (
                 <button onClick={markAll} className="text-[11px] text-flame-400 hover:text-flame-500">
                   Mark all read
@@ -334,7 +339,7 @@ function NotificationBell() {
                 <p className="px-4 py-8 text-center text-[13px] text-faint">Nothing yet.</p>
               ) : (
                 items.map((item) => (
-                  <div key={item.id} className="border-b border-white/5 px-4 py-3 last:border-0">
+                  <div key={item.id} className="border-b border-paper/[0.05] px-4 py-3 last:border-0">
                     <div className="flex items-start gap-2">
                       <span
                         className={cn(
@@ -347,7 +352,7 @@ function NotificationBell() {
                           {item.title}
                         </p>
                         {item.body ? <p className="mt-0.5 line-clamp-2 text-[11.5px] text-faint">{item.body}</p> : null}
-                        <p className="mt-1 font-mono text-[10px] text-faint">{relativeTime(item.created_at)}</p>
+                        <p className="mt-1 text-[10.5px] text-faint">{relativeTime(item.created_at)}</p>
                       </div>
                     </div>
                   </div>
@@ -381,11 +386,11 @@ function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-lg border border-white/8 bg-ink-900 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-white/16"
+        className="flex items-center gap-2 rounded-[var(--radius-control)] border border-paper/[0.07] bg-paper/[0.02] py-1 pl-1 pr-2.5 transition-colors hover:border-paper/[0.14]"
       >
         <span
-          className="flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-semibold text-[#160b04]"
-          style={{ backgroundColor: user?.avatar_color || "#ff6a1f" }}
+          className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-control)] text-[11px] font-semibold text-seed"
+          style={{ backgroundColor: user?.avatar_color || "var(--color-flame-500)" }}
         >
           {(user?.name || user?.email || "?").slice(0, 1).toUpperCase()}
         </span>
@@ -395,28 +400,28 @@ function UserMenu() {
       {open ? (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-white/10 bg-ink-850 shadow-2xl">
-            <div className="border-b border-white/8 px-4 py-3">
-              <p className="truncate text-[13px] font-medium">{user?.name}</p>
+          <div className="absolute right-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-[var(--radius-card)] border border-paper/10 bg-ink-850">
+            <div className="border-b border-paper/[0.07] px-4 py-3">
+              <p className="truncate text-[13px] font-semibold">{user?.name}</p>
               <p className="truncate text-[11px] text-faint">{user?.email}</p>
             </div>
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted hover:bg-white/5 hover:text-paper"
+              className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted hover:bg-paper/[0.05] hover:text-paper"
             >
               <Settings className="h-3.5 w-3.5" /> Account settings
             </Link>
             <Link
               href="/billing"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted hover:bg-white/5 hover:text-paper"
+              className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted hover:bg-paper/[0.05] hover:text-paper"
             >
               <Wallet className="h-3.5 w-3.5" /> Plan & usage
             </Link>
             <button
               onClick={logout}
-              className="flex w-full items-center gap-2 border-t border-white/8 px-4 py-2.5 text-left text-[13px] text-muted hover:bg-white/5 hover:text-rose"
+              className="flex w-full items-center gap-2 border-t border-paper/[0.07] px-4 py-2.5 text-left text-[13px] text-muted hover:bg-paper/[0.05] hover:text-rose"
             >
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </button>
@@ -436,14 +441,20 @@ function SystemFooter() {
       .catch(() => setStatus(null));
   }, []);
   return (
-    <div className="border-t border-white/7 px-4 py-3">
-      <Link href="/docs" className="flex items-center justify-between gap-2 text-[11px] text-faint hover:text-muted">
-        <span className="flex items-center gap-1.5">
+    <div className="border-t border-paper/[0.06] px-3.5 py-3">
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <Link
+          href="/docs"
+          className="flex items-center gap-1.5 text-faint transition-colors hover:text-paper"
+        >
+          <BookOpen className="h-3 w-3" />
+          Docs
+        </Link>
+        <span className="flex items-center gap-1.5 text-faint">
           <span className={cn("h-1.5 w-1.5 rounded-full", status ? "bg-mint" : "bg-rose")} />
-          {status ? (status.ffmpeg ? "Engine ready" : "FFmpeg missing") : "Checking engine"}
+          {status ? (status.ffmpeg ? "Engine ready" : "FFmpeg off") : "Checking"}
         </span>
-        <span className="font-mono">v1.0</span>
-      </Link>
+      </div>
     </div>
   );
 }
@@ -452,7 +463,7 @@ function HeaderBreadcrumb() {
   const pathname = usePathname();
   const label =
     NAV.flatMap((section) => section.items).find(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+      (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
     )?.label || "FireClip";
-  return <span className="text-[12px] text-faint">{label}</span>;
+  return <span className="truncate text-[12.5px] font-medium text-muted">{label}</span>;
 }

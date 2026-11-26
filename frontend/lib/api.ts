@@ -38,7 +38,7 @@ function readableError(status: number, payload: unknown): string {
           }
           return String(item);
         })
-        .join(" · ");
+        .join(", ");
     }
   }
   if (status === 401) return "Your session expired. Sign in again.";

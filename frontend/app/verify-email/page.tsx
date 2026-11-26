@@ -51,7 +51,7 @@ function VerifyInner() {
       footer={<Link href="/login" className="text-flame-400 hover:text-flame-500">Go to sign in</Link>}
     >
       {state === "working" ? (
-        <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/4 px-4 py-5 text-[13px] text-muted">
+        <div className="flex items-center gap-3 rounded-[var(--radius-control)] border border-paper/10 bg-paper/4 px-4 py-5 text-[13px] text-muted">
           <Loader2 className="h-4 w-4 animate-spin text-flame-500" /> Checking your link…
         </div>
       ) : state === "done" ? (

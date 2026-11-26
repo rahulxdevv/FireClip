@@ -165,7 +165,14 @@ class Settings:
     ffprobe_bin: str = os.getenv("FFPROBE_BIN", "ffprobe")
     ytdlp_bin: str = os.getenv("YTDLP_BIN", "yt-dlp")
     max_upload_mb: int = _int("MAX_UPLOAD_MB", 4096)
+    min_free_disk_gb: float = _float("MIN_FREE_DISK_GB", 2.0)
+    max_workspace_storage_gb: float = _float("MAX_WORKSPACE_STORAGE_GB", 0.0)
     max_import_minutes: int = _int("MAX_IMPORT_MINUTES", 600)
+    # Frozen screens, slates and commercial cards are skipped before clips are proposed.
+    static_screen_filter: bool = _bool("STATIC_SCREEN_FILTER", True)
+    static_screen_threshold: float = _float("STATIC_SCREEN_THRESHOLD", 1.0)
+    static_screen_min_seconds: float = _float("STATIC_SCREEN_MIN_SECONDS", 6.0)
+    static_screen_max_overlap: float = _float("STATIC_SCREEN_MAX_OVERLAP", 0.35)
     allowed_video_ext: tuple[str, ...] = (
         ".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".mpg", ".mpeg", ".flv", ".ts",
     )

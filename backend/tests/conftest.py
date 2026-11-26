@@ -18,6 +18,8 @@ os.environ["TRANSCRIPTION_ENGINE"] = "mock"
 os.environ["JOB_RUNNER"] = "inline"
 os.environ["AUTO_MIGRATE"] = "true"
 os.environ["AUTO_PIPELINE"] = "true"
+# The sample fixture is a still colour card; still-screen skipping has its own tests.
+os.environ["STATIC_SCREEN_FILTER"] = "false"
 os.environ["RATE_LIMIT_AUTH_PER_MINUTE"] = "1000"
 os.environ["RATE_LIMIT_API_PER_MINUTE"] = "10000"
 os.environ["OPENAI_API_KEY"] = ""

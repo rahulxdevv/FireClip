@@ -78,7 +78,7 @@ export default function UploadPage() {
         xhr.onerror = () => reject(new ApiError(0, "The upload connection failed."));
         xhr.send(form);
       });
-      toast("Upload complete - processing started", "success");
+      toast("Upload complete. Processing started.", "success");
       router.push(`/videos/${video.id}`);
     } catch (err) {
       setError(errorMessage(err));
@@ -88,9 +88,7 @@ export default function UploadPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader
-        eyebrow="Ingest"
-        title="Upload a video"
+      <PageHeader        title="Upload a video"
         description="Video and audio files up to the server's configured limit. Metadata is probed with FFprobe; transcription starts automatically."
       />
 
@@ -120,13 +118,13 @@ export default function UploadPage() {
             />
             {file ? (
               <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-flame-500/12 text-flame-500">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-flame-500/12 text-flame-500">
                   <FileVideo className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13.5px] font-medium">{file.name}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-faint">
-                    {formatBytes(file.size)} · {file.type || "unknown type"}
+                    {formatBytes(file.size)}, {file.type || "unknown type"}
                   </p>
                   {uploading ? (
                     <div className="mt-3 space-y-1.5">
@@ -152,7 +150,7 @@ export default function UploadPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center py-8 text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-ink-800 text-flame-500">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-[var(--radius-card)] border border-paper/10 bg-ink-800 text-flame-500">
                   <UploadCloud className="h-5 w-5" />
                 </div>
                 <p className="text-[14px] font-medium">Drop a video here</p>
@@ -174,7 +172,7 @@ export default function UploadPage() {
 
           {error ? <Alert title="Upload failed">{error}</Alert> : null}
 
-          <Panel className="divide-y divide-white/6">
+          <Panel className="divide-y divide-paper/6">
             <div className="px-5 py-3">
               <Field label="Title" hint="Defaults to the file name.">
                 <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={300} />
@@ -236,7 +234,7 @@ export default function UploadPage() {
                 ["Analyze", "Explainable highlight scoring produces candidate clips."],
               ].map(([step, body], index) => (
                 <li key={step} className="flex gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 font-mono text-[9px] text-flame-400">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-paper/10 font-mono text-[9px] text-flame-400">
                     {index + 1}
                   </span>
                   <div>
@@ -251,7 +249,7 @@ export default function UploadPage() {
             Transcription is the one stage that can fail without credentials. If no engine is available,
             the job reports that clearly instead of inventing a transcript.
           </Alert>
-          <div className="flex items-start gap-2 rounded-xl border border-white/8 bg-ink-900 p-4 text-[11.5px] leading-relaxed text-faint">
+          <div className="flex items-start gap-2 rounded-[var(--radius-card)] border border-paper/8 bg-ink-900 p-4 text-[11.5px] leading-relaxed text-faint">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-mint" />
             Files are served only through authenticated endpoints with workspace checks. Local development
             stores media under <code className="font-mono text-muted">backend/data</code>.

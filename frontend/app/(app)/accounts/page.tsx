@@ -103,9 +103,7 @@ export default function AccountsPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Distribute"
-        title="Social accounts"
+      <PageHeader        title="Social accounts"
         description="OAuth connections are stored encrypted at rest. Tokens never reach the browser."
       />
 
@@ -131,11 +129,11 @@ export default function AccountsPage() {
               {connected.length > 0 ? (
                 <div className="mt-3 space-y-2">
                   {connected.map((account) => (
-                    <div key={account.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/8 bg-ink-850 px-3 py-2">
+                    <div key={account.id} className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] border border-paper/8 bg-ink-850 px-3 py-2">
                       <div className="min-w-0">
                         <p className="truncate text-[12px] text-paper">{account.account_name}</p>
-                        <p className="font-mono text-[9.5px] text-faint">
-                          token expires {account.token_expires_at ? formatDateTime(account.token_expires_at) : "when revoked"}
+                        <p className="text-[10px] text-faint">
+                          Token expires {account.token_expires_at ? formatDateTime(account.token_expires_at) : "when revoked"}
                         </p>
                       </div>
                       <Button
@@ -169,7 +167,7 @@ export default function AccountsPage() {
           <EmptyState
             icon={<Link2 className="h-5 w-5" />}
             title="No connections yet"
-            description="Connecting requires platform OAuth credentials on the server. Without them FireClip tells you exactly which variables to set - it does not simulate a connection."
+            description="Connecting requires platform OAuth credentials on the server. Without them FireClip tells you exactly which variables to set. It does not simulate a connection."
           />
         </Panel>
       ) : null}
@@ -183,7 +181,7 @@ export default function AccountsPage() {
         <div className="space-y-3">
           <Alert tone="info">{dialog?.message}</Alert>
           {dialog ? (
-            <div className="rounded-lg border border-white/8 bg-ink-850 p-3 font-mono text-[10.5px] text-faint">
+            <div className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850 p-3 font-mono text-[10.5px] text-faint">
               {PLATFORMS.find((item) => item.id === dialog.platform)?.env}
             </div>
           ) : null}

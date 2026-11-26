@@ -134,6 +134,62 @@ def fetch_live_state(url: str) -> bool | None:
     return None
 
 
+def search_streamers(query: str, *, limit: int = 12, live_only: bool = False) -> list[dict]:
+    """Search public YouTube channels through yt-dlp without an API key."""
+    query = " ".join(query.split())[:120]
+    if not query or not ytdlp_available():
+        return []
+    count = max(1, min(20, limit))
+    try:
+        result = subprocess.run(
+            _ytdlp_command(
+                "--dump-json",
+                "--flat-playlist",
+                "--no-warnings",
+                "--ignore-errors",
+                "--playlist-end",
+                str(count),
+                f"ytsearch{count}:{query}",
+            ),
+            capture_output=True,
+            text=True,
+            timeout=75,
+        )
+    except subprocess.TimeoutExpired:
+        raise SourceError("Streamer search timed out; try a narrower query")
+    if result.returncode != 0 and not result.stdout.strip():
+        raise SourceError(_clean_ytdlp_error(result.stderr))
+    channels: dict[str, dict] = {}
+    for line in (result.stdout or "").splitlines():
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        is_live = bool(item.get("is_live")) or str(item.get("live_status") or "") == "is_live"
+        if live_only and not is_live:
+            continue
+        channel_url = item.get("uploader_url") or item.get("channel_url") or ""
+        video_url = item.get("webpage_url") or item.get("url") or ""
+        if not channel_url or not video_url:
+            continue
+        key = channel_url.rstrip("/").lower()
+        candidate = {
+            "platform": "youtube",
+            "channel": (item.get("uploader") or item.get("channel") or "Unknown channel")[:120],
+            "channel_url": channel_url,
+            "title": (item.get("title") or "")[:240],
+            "video_url": video_url,
+            "thumbnail_url": item.get("thumbnail") or "",
+            "live": is_live,
+            "viewers": int(item.get("view_count") or 0),
+            "duration_seconds": float(item.get("duration") or 0),
+        }
+        existing = channels.get(key)
+        if existing is None or (candidate["live"] and not existing["live"]):
+            channels[key] = candidate
+    return list(channels.values())[:count]
+
+
 def fetch_source_info(url: str) -> SourceInfo:
     platform = detect_platform(url)
     validate_url(url)

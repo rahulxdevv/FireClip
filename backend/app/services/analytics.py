@@ -131,7 +131,7 @@ def overview(db: Session, workspace_id: str) -> dict:
     notes: list[str] = []
     if not rows:
         notes.append(
-            "No measured analytics yet. Connect a platform and sync, or record numbers manually - "
+            "No measured analytics yet. Connect a platform and sync, or record numbers manually. "
             "FireClip never estimates views or engagement."
         )
     accounts = db.scalar(

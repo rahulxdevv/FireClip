@@ -43,10 +43,8 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow={workspace?.name}
-        title="Dashboard"
-        description="Everything moving through the pipeline right now - sourced from the live database."
+      <PageHeader        title="Dashboard"
+        description="Everything moving through the pipeline right now, read straight from the live database."
         actions={
           <>
             <Link href="/schedule">
@@ -91,9 +89,9 @@ export default function DashboardPage() {
                 </Link>
               </div>
             </div>
-            <ol className="space-y-3 rounded-xl border border-white/8 bg-ink-950/50 p-5 text-[12.5px]">
+            <ol className="space-y-3 rounded-[var(--radius-card)] border border-paper/8 bg-ink-950/50 p-5 text-[12.5px]">
               {[
-                "Probe media - duration, resolution, audio",
+                "Probe media: duration, resolution, audio",
                 "Transcribe with word timestamps",
                 "Score highlights with visible signals",
                 "Trim, caption and render with FFmpeg",
@@ -113,28 +111,24 @@ export default function DashboardPage() {
           label="Source videos"
           value={counts.videos}
           hint={`${formatBytes(data.storage_bytes)} stored`}
-          icon={<Film className="h-4 w-4" />}
           href="/videos"
         />
         <StatCard
           label="Clips found"
           value={counts.clips}
           hint={`${counts.approved_clips} approved`}
-          icon={<Flame className="h-4 w-4" />}
           href="/clips"
         />
         <StatCard
           label="Processing now"
           value={counts.processing}
           hint={counts.processing > 0 ? "Workers are running" : "Queue is idle"}
-          icon={<Sparkles className="h-4 w-4" />}
           href="/renders"
         />
         <StatCard
           label="Published clips"
           value={counts.published}
           hint={`${counts.scheduled_posts} scheduled`}
-          icon={<ArrowRight className="h-4 w-4" />}
           href="/schedule"
         />
       </div>
@@ -168,7 +162,7 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {data.processing.map((job) => (
                   <div key={job.id} className="px-5 py-3.5">
                     <div className="mb-2 flex items-center justify-between gap-3">
@@ -180,7 +174,7 @@ export default function DashboardPage() {
                         href={job.video_id ? `/videos/${job.video_id}` : "/renders"}
                         className="text-[11.5px] text-faint hover:text-paper"
                       >
-                        {formatDuration(0)} · {relativeTime(job.created_at)}
+                        {formatDuration(0)}, {relativeTime(job.created_at)}
                       </Link>
                     </div>
                     <InlineProgress value={job.progress} label={job.kind} />
@@ -242,12 +236,12 @@ export default function DashboardPage() {
                 description="Once a video has a transcript, AI analysis will populate clip candidates."
               />
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {data.recent_clips.map((clip) => (
                   <Link
                     key={clip.id}
                     href={`/clips?highlight=${clip.id}`}
-                    className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-white/3"
+                    className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-paper/3"
                   >
                     <span className={`w-9 font-mono text-[15px] font-semibold ${scoreTone(clip.virality_score)}`}>
                       {Math.round(clip.virality_score)}
@@ -255,7 +249,7 @@ export default function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12.5px] font-medium text-paper">{clip.title}</p>
                       <p className="mt-0.5 truncate text-[11px] text-faint">
-                        {clip.video_title} · {formatDuration(clip.duration_ms, true)}
+                        {clip.video_title}, {formatDuration(clip.duration_ms, true)}
                       </p>
                     </div>
                     <Badge tone={clip.status === "approved" ? "mint" : clip.status === "rejected" ? "rose" : "neutral"}>
@@ -284,7 +278,7 @@ export default function DashboardPage() {
                 limit={workspace?.monthly_clip_limit ?? 500}
                 format={(value) => `${Math.round(value)}`}
               />
-              <div className="flex items-center justify-between border-t border-white/6 pt-3 text-[11.5px]">
+              <div className="flex items-center justify-between border-t border-paper/6 pt-3 text-[11.5px]">
                 <span className="text-faint">Transcribed audio</span>
                 <span className="font-mono text-muted">{formatDuration(usage.transcription_seconds)}</span>
               </div>
@@ -292,8 +286,12 @@ export default function DashboardPage() {
                 <span className="text-faint">AI usage units</span>
                 <span className="font-mono text-muted">{Math.round(usage.ai_units).toLocaleString()}</span>
               </div>
-              <Link href="/billing" className="block pt-1 text-[11.5px] text-flame-400 hover:text-flame-500">
-                View plan & usage →
+              <Link
+                href="/billing"
+                className="flex items-center gap-1 pt-1 text-[11.5px] text-flame-400 hover:text-flame-500"
+              >
+                View plan & usage
+                <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
           </Panel>
@@ -310,16 +308,16 @@ export default function DashboardPage() {
             {data.renders.length === 0 ? (
               <p className="px-5 py-8 text-center text-[12px] text-faint">No renders yet.</p>
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {data.renders.map((render) => (
                   <div key={render.id} className="flex items-center gap-3 px-5 py-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 text-faint">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] bg-paper/5 text-faint">
                       <Download className="h-3.5 w-3.5" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12px] text-paper">{render.project_name || render.preset}</p>
                       <p className="font-mono text-[10px] text-faint">
-                        {render.preset} · {render.format} · {relativeTime(render.created_at)}
+                        {render.preset}, {render.format}, {relativeTime(render.created_at)}
                       </p>
                     </div>
                     <JobStatusBadge status={render.status} />
@@ -334,7 +332,7 @@ export default function DashboardPage() {
             {data.recent_activity.length === 0 ? (
               <p className="px-5 py-8 text-center text-[12px] text-faint">No activity recorded yet.</p>
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {data.recent_activity.map((item) => (
                   <div key={item.id} className="px-5 py-2.5">
                     <p className="text-[11.5px] text-muted">
@@ -350,14 +348,14 @@ export default function DashboardPage() {
 
           <Panel>
             <PanelHeader title="Clip status" />
-            <div className="grid grid-cols-3 divide-x divide-white/6">
+            <div className="grid grid-cols-3 divide-x divide-paper/6">
               {[
                 ["Approved", counts.approved_clips, "text-mint"],
                 ["Exports", counts.exports, "text-ember"],
                 ["Renders", counts.renders, "text-muted"],
               ].map(([label, value, tone]) => (
                 <div key={String(label)} className="px-3 py-4 text-center">
-                  <p className={`font-mono text-[18px] font-semibold ${tone}`}>{value as number}</p>
+                  <p className={"font-display text-[19px] font-semibold tabular-nums " + tone}>{value as number}</p>
                   <p className="mt-0.5 text-[10.5px] text-faint">{label as string}</p>
                 </div>
               ))}
@@ -385,14 +383,14 @@ function UsageBar({
     <div>
       <div className="mb-1.5 flex items-center justify-between text-[11.5px]">
         <span className="text-faint">{label}</span>
-        <span className="font-mono text-muted">
+        <span className="tabular-nums text-muted">
           {format(value)} / {format(limit)}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/7">
+      <div className="h-1.5 overflow-hidden rounded-full bg-paper/[0.07]">
         <div
-          className={`h-full rounded-full ${pct > 85 ? "bg-rose" : "bg-flame-500"}`}
-          style={{ width: `${Math.max(1, pct)}%` }}
+          className={"h-full w-full origin-left rounded-full " + (pct > 85 ? "bg-rose" : "bg-flame-500")}
+          style={{ transform: "scaleX(" + pct / 100 + ")" }}
         />
       </div>
     </div>

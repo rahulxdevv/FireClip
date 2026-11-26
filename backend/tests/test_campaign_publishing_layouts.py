@@ -197,6 +197,31 @@ def test_render_layouts_build_expected_filter_graphs(tmp_path):
     assert "scale=1080:960:force_original_aspect_ratio=increase" in bottom_graph
     assert "overlay=x=(main_w-overlay_w)*0.0000:y=(main_h-overlay_h)*1.0000" in bottom_graph
 
+    gameplay, _ = render.build_filter_graph(
+        _project(
+            {
+                "mode": "gameplay",
+                "position": "bottom_right",
+                "size": 0.32,
+                "camera_x": 0.6,
+                "camera_y": 0.55,
+                "camera_w": 0.4,
+                "camera_h": 0.45,
+            }
+        ),
+        width=1080,
+        height=1920,
+        workdir=tmp_path,
+        has_audio=False,
+        music_index=None,
+        image_indices=[],
+        source_audio_index=None,
+        duration=20,
+    )
+    gameplay_graph = "\n".join(gameplay)
+    assert "boxblur" not in gameplay_graph
+    assert "crop=iw*0.4000:ih*0.4500:iw*0.6000:ih*0.5500" in gameplay_graph
+    assert "overlay=x=(main_w-overlay_w)*0.9600" in gameplay_graph
 
 def test_campaign_overlay_times_are_source_relative_only_when_marked(tmp_path):
     project = _project({"mode": "fill"})

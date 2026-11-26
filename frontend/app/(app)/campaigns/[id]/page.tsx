@@ -134,7 +134,7 @@ export default function CampaignDetailPage() {
       data.append("kind", "image");
       const asset = await api.upload<{ key: string }>("/api/assets", data);
       change("logo_asset_key", asset.key);
-      toast("Logo uploaded - save the campaign to apply it", "success");
+      toast("Logo uploaded. Save the campaign to apply it.", "success");
     } catch (err) {
       toast(errorMessage(err), "error");
     } finally {
@@ -280,7 +280,6 @@ export default function CampaignDetailPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Campaigns
       </Link>
       <PageHeader
-        eyebrow="Campaign"
         title={data.name}
         description={data.description || "A reusable brief for every video in this batch."}
         actions={
@@ -320,7 +319,7 @@ export default function CampaignDetailPage() {
         ].map(([label, value]) => (
           <Panel key={String(label)} className="p-3.5">
             <p className="font-mono text-[22px] leading-none text-paper">{value}</p>
-            <p className="mt-1.5 text-[10px] uppercase tracking-wide text-faint">{label}</p>
+            <p className="mt-1.5 text-[11px] text-faint">{label}</p>
           </Panel>
         ))}
       </div>
@@ -349,7 +348,7 @@ export default function CampaignDetailPage() {
                         {video.title}
                       </Link>
                       <p className="mt-0.5 text-[10.5px] text-faint">
-                        {formatDuration(video.duration_seconds)} · {video.status}
+                        {formatDuration(video.duration_seconds)}, {video.status}
                       </p>
                     </div>
                     <Button
@@ -382,7 +381,7 @@ export default function CampaignDetailPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12.5px] font-medium">{clip.title}</p>
                       <p className="mt-0.5 truncate text-[10.5px] text-faint">
-                        {formatDuration(clip.duration_ms, true)} · {clip.status} · {clip.hook || clip.description}
+                        {formatDuration(clip.duration_ms, true)}, {clip.status}, {clip.hook || clip.description}
                       </p>
                     </div>
                     <Button size="sm" variant="outline" loading={busy === clip.id} onClick={() => openEditor(clip)}>
@@ -455,7 +454,7 @@ export default function CampaignDetailPage() {
               </Field>
             </div>
             <div className="rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-faint">Brand kit</p>
+              <p className="mb-3 text-[11px] font-semibold text-faint">Brand kit</p>
               <div className="space-y-3">
                 <Field label="Headline overlay" hint="Short hook shown at the top of every auto-render.">
                   <Input maxLength={160} value={form.headline} onChange={(event) => change("headline", event.target.value)} placeholder="The part nobody tells you" />
@@ -518,7 +517,7 @@ export default function CampaignDetailPage() {
             </div>
 
             <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-faint">Automation</p>
+              <p className="mb-3 text-[11px] font-semibold text-faint">Automation</p>
               <Switch
                 checked={form.auto_approve}
                 onCheckedChange={(value) => setForm((current) => current ? {
@@ -592,7 +591,7 @@ export default function CampaignDetailPage() {
                               }}
                             />
                             <span className="min-w-0 flex-1 truncate text-[11px]">{account.account_name}</span>
-                            <span className="text-[9.5px] uppercase text-faint">{account.platform}</span>
+                            <span className="text-[10.5px] text-faint">{account.platform}</span>
                           </label>
                         ))}
                       </div>
@@ -644,8 +643,8 @@ export default function CampaignDetailPage() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12.5px]">{video.title}</span>
                   <span className="block text-[10.5px] text-faint">
-                    {formatDuration(video.duration_seconds)} · {video.status}
-                    {video.campaign_id ? " · in another campaign" : ""}
+                    {formatDuration(video.duration_seconds)}, {video.status}
+                    {video.campaign_id ? ", in another campaign" : ""}
                   </span>
                 </span>
               </label>

@@ -117,7 +117,6 @@ export default function CampaignsPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        eyebrow="Create"
         title="Campaigns"
         description="One brief, one target format, one automation policy for every video in a batch."
         actions={
@@ -138,7 +137,7 @@ export default function CampaignsPage() {
               </Badge>
               <button
                 onClick={() => feed.refresh()}
-                className="rounded p-1.5 text-faint hover:bg-white/5 hover:text-paper"
+                className="rounded p-1.5 text-faint hover:bg-paper/5 hover:text-paper"
                 aria-label="Refresh campaign feed"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -165,7 +164,7 @@ export default function CampaignsPage() {
         ) : (
           <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
             {feed.data.campaigns.map((item) => (
-              <div key={item.external_id} className="flex flex-col rounded-lg border border-white/8 bg-ink-850/50 p-3.5">
+              <div key={item.external_id} className="flex flex-col rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-[12.5px] font-medium">{item.name}</p>
@@ -177,7 +176,7 @@ export default function CampaignsPage() {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {item.hashtags.slice(0, 4).map((tag) => (
-                    <span key={tag} className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[9.5px] text-muted">{tag}</span>
+                    <span key={tag} className="rounded bg-paper/5 px-1.5 py-0.5 font-mono text-[9.5px] text-muted">{tag}</span>
                   ))}
                   {item.ends_at ? <span className="text-[10px] text-faint">Ends {item.ends_at.slice(0, 10)}</span> : null}
                 </div>
@@ -197,7 +196,7 @@ export default function CampaignsPage() {
                       href={item.source_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded p-2 text-faint hover:bg-white/5 hover:text-paper"
+                      className="rounded p-2 text-faint hover:bg-paper/5 hover:text-paper"
                       aria-label="Open campaign source"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -248,29 +247,29 @@ export default function CampaignsPage() {
                   </div>
                   <Link
                     href={`/campaigns/${campaign.id}`}
-                    className="shrink-0 rounded-lg border border-white/10 p-2 text-muted transition-colors hover:border-flame-500/40 hover:text-flame-400"
+                    className="shrink-0 rounded-[var(--radius-control)] border border-paper/10 p-2 text-muted transition-colors hover:border-flame-500/40 hover:text-flame-400"
                     aria-label={`Open ${campaign.name}`}
                   >
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-white/7 bg-ink-850/60 p-3">
+                <div className="mt-4 grid grid-cols-3 gap-2 rounded-[var(--radius-card)] border border-paper/7 bg-ink-850/60 p-3">
                   <div>
                     <p className="font-mono text-[17px] text-paper">{campaign.video_count}</p>
-                    <p className="text-[10px] uppercase tracking-wide text-faint">videos</p>
+                    <p className="text-[11px] text-faint">videos</p>
                   </div>
                   <div>
                     <p className="font-mono text-[17px] text-paper">{campaign.clip_count_actual}</p>
-                    <p className="text-[10px] uppercase tracking-wide text-faint">clips</p>
+                    <p className="text-[11px] text-faint">clips</p>
                   </div>
                   <div>
                     <p className="font-mono text-[17px] text-paper">{campaign.rendered_count}</p>
-                    <p className="text-[10px] uppercase tracking-wide text-faint">renders</p>
+                    <p className="text-[11px] text-faint">renders</p>
                   </div>
                 </div>
 
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/7">
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper/7">
                   <div className="h-full rounded-full bg-flame-500" style={{ width: `${progress}%` }} />
                 </div>
                 <div className="mt-2 flex items-center justify-between text-[10.5px] text-faint">
@@ -278,7 +277,7 @@ export default function CampaignsPage() {
                   <span>{progress}% of clips</span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-white/6 pt-3 text-[11px] text-faint">
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-paper/6 pt-3 text-[11px] text-faint">
                   <span className="inline-flex items-center gap-1.5">
                     <Clock className="h-3 w-3" /> {formatDuration(campaign.target_duration_ms, true)} target
                   </span>
@@ -315,7 +314,7 @@ export default function CampaignsPage() {
               maxLength={160}
               value={form.name}
               onChange={(event) => change("name", event.target.value)}
-              placeholder="Founder stories - launch week"
+              placeholder="Founder stories, launch week"
             />
           </Field>
           <Field label="Brief" hint="Editorial direction for clip selection: audience, angle, moments to prefer, claims to avoid.">
@@ -384,7 +383,7 @@ export default function CampaignsPage() {
               </Select>
             </Field>
           </div>
-          <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+          <div className="space-y-3 rounded-[var(--radius-card)] border border-paper/8 bg-ink-850/50 p-3.5">
             <Switch
               checked={form.auto_approve}
               onCheckedChange={(value) => setForm((current) => ({

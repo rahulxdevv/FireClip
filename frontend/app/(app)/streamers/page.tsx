@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { CircleStop, ExternalLink, Plus, Radio, Trash2, Users, Video } from "lucide-react";
+import { CircleStop, ExternalLink, Plus, Radio, Search, Trash2, Users, Video } from "lucide-react";
 import { PageHeader } from "@/components/shared";
 import {
   Alert,
@@ -20,11 +20,22 @@ import {
 import { useApi } from "@/lib/hooks";
 import { api, errorMessage } from "@/lib/api";
 import { toast } from "@/lib/stores";
-import { formatDateTime, relativeTime } from "@/lib/format";
+import { formatDateTime, formatDuration, relativeTime } from "@/lib/format";
 import type { Campaign, LiveStream } from "@/lib/types";
 
-const statusTone: Record<string, "neutral" | "flame" | "mint" | "rose" | "ember"> = {
-  monitoring: "neutral",
+interface DiscoveryItem {
+  platform: string;
+  channel: string;
+  channel_url: string;
+  title: string;
+  video_url: string;
+  thumbnail_url: string;
+  live: boolean;
+  viewers: number;
+  duration_seconds: number;
+}
+
+const statusTone: Record<string, "neutral" | "flame" | "mint" | "rose" | "ember"> = {  monitoring: "neutral",
   recording: "flame",
   recorded: "mint",
   stopped: "neutral",
@@ -44,8 +55,12 @@ export default function StreamersPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [busy, setBusy] = React.useState<string | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
-
-  const streams = data || [];
+  const [discoverQuery, setDiscoverQuery] = React.useState("");
+  const [discoverLive, setDiscoverLive] = React.useState(false);
+  const [discovering, setDiscovering] = React.useState(false);
+  const [discoverError, setDiscoverError] = React.useState<string | null>(null);
+  const [discoveries, setDiscoveries] = React.useState<DiscoveryItem[]>([]);
+  const [discoverSearched, setDiscoverSearched] = React.useState(false);  const streams = data || [];
   const recording = streams.filter((stream) => stream.status === "recording").length;
   const monitoring = streams.filter((stream) => stream.status === "monitoring").length;
   const autoRecord = streams.filter((stream) => stream.auto_record).length;
@@ -103,10 +118,51 @@ export default function StreamersPage() {
     }
   }
 
+  async function discover(event: React.FormEvent) {
+    event.preventDefault();
+    const query = discoverQuery.trim();
+    if (query.length < 2) return;
+    setDiscovering(true);
+    setDiscoverError(null);
+    setDiscoverSearched(true);
+    try {
+      const result = await api.get<{ items: DiscoveryItem[] }>(
+        `/api/discover/streamers?q=${encodeURIComponent(query)}&live_only=${discoverLive ? "true" : "false"}&limit=12`,
+      );
+      setDiscoveries(result.items || []);
+    } catch (err) {
+      setDiscoverError(errorMessage(err));
+      setDiscoveries([]);
+    } finally {
+      setDiscovering(false);
+    }
+  }
+
+  async function addDiscovered(item: DiscoveryItem) {
+    const base = item.channel_url.replace(/\/$/, "");
+    const monitorUrl = item.platform === "youtube" ? `${base}/live` : base;
+    setSubmitting(true);
+    try {
+      await api.post("/api/live-streams", {
+        url: monitorUrl,
+        title: item.channel,
+        campaign_id: form.campaign_id || null,
+        auto_record: true,
+        auto_clip: true,
+      });
+      setDiscoveries((current) => current.filter((entry) => entry.channel_url !== item.channel_url));
+      refresh();
+      toast(`${item.channel} added to the roster`, "success");
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        eyebrow="Ingest"
         title="Streamers"
         description="A roster of the creators you monitor. Each streamer keeps its own campaign, recording and analysis rules."
       />
@@ -119,13 +175,68 @@ export default function StreamersPage() {
           ["Auto-record", autoRecord],
         ].map(([label, value]) => (
           <Panel key={String(label)} className="p-4">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-faint">{label}</p>
+            <p className="text-[11px] font-semibold text-faint">{label}</p>
             <p className="mt-1 font-display text-2xl">{value}</p>
           </Panel>
         ))}
       </div>
 
       {error ? <Alert className="mb-4">{error}</Alert> : null}
+
+      <Panel className="mb-5">
+        <PanelHeader
+          title="Discover creators"
+          description="Search public YouTube channels by topic or handle. No platform login or API key is used."
+          action={<Badge tone="neutral">public search</Badge>}
+        />
+        <div className="p-4">
+          <form onSubmit={discover} className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={discoverQuery}
+              onChange={(event) => setDiscoverQuery(event.target.value)}
+              placeholder="Gaming, cooking, late-night talk, or a channel handle"
+              className="flex-1"
+            />
+            <Button type="submit" loading={discovering} disabled={discoverQuery.trim().length < 2}>
+              <Search className="h-4 w-4" /> Find creators
+            </Button>
+          </form>
+          <div className="mt-2">
+            <Switch
+              checked={discoverLive}
+              onCheckedChange={setDiscoverLive}
+              label="Only channels live right now"
+            />
+          </div>
+          {discoverError ? <Alert className="mt-3">{discoverError}</Alert> : null}
+          {discoverSearched && !discovering && !discoverError && discoveries.length === 0 ? (
+            <p className="mt-3 text-[11px] text-faint">
+              No public channels matched. Try a broader topic or turn off the live-only filter.
+            </p>
+          ) : null}
+          {discoveries.length ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {discoveries.map((item) => (
+                <div key={`${item.platform}-${item.channel_url}`} className="flex flex-col rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-[12px] font-medium">{item.channel}</p>
+                    <Badge tone={item.live ? "flame" : "neutral"}>{item.live ? "live" : "offline"}</Badge>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[10.5px] text-faint">{item.title || "Public channel"}</p>
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+                    <span className="text-[10px] text-faint">
+                      {item.duration_seconds ? formatDuration(item.duration_seconds) : "channel"}
+                    </span>
+                    <Button size="sm" variant="outline" onClick={() => addDiscovered(item)} disabled={submitting}>
+                      <Plus className="h-3 w-3" /> Add
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Panel>
 
       <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
         <Panel>
@@ -143,7 +254,7 @@ export default function StreamersPage() {
               description="Add a public YouTube, Twitch or Kick live URL to start monitoring."
             />
           ) : (
-            <div className="divide-y divide-white/6">
+            <div className="divide-y divide-paper/6">
               {streams.map((stream) => {
                 const campaign = (campaigns.data || []).find((item) => item.id === stream.campaign_id);
                 return (
@@ -178,7 +289,7 @@ export default function StreamersPage() {
                           </Link>
                         ) : null}
                         <button
-                          className="rounded p-1.5 text-faint hover:bg-white/5 hover:text-rose"
+                          className="rounded p-1.5 text-faint hover:bg-paper/5 hover:text-rose"
                           onClick={() => act(stream, "delete")}
                           aria-label="Remove streamer"
                         >
@@ -186,7 +297,7 @@ export default function StreamersPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-4 rounded-lg border border-white/6 bg-ink-850/40 px-3 py-2">
+                    <div className="mt-3 flex flex-wrap gap-4 rounded-[var(--radius-control)] border border-paper/6 bg-ink-850/40 px-3 py-2">
                       <Switch
                         checked={stream.auto_record}
                         onCheckedChange={(value) => toggle(stream, { auto_record: value })}
@@ -199,7 +310,7 @@ export default function StreamersPage() {
                       />
                     </div>
                     {stream.error_message ? (
-                      <p className="mt-2 rounded-md border border-rose/20 bg-rose/5 px-2.5 py-1.5 text-[10.5px] text-rose">
+                      <p className="mt-2 rounded-[var(--radius-control)] border border-rose/20 bg-rose/5 px-2.5 py-1.5 text-[10.5px] text-rose">
                         {stream.error_message}
                       </p>
                     ) : null}
@@ -241,7 +352,7 @@ export default function StreamersPage() {
                 ))}
               </Select>
             </Field>
-            <div className="space-y-2 rounded-lg border border-white/8 bg-ink-850/50 p-3">
+            <div className="space-y-2 rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 p-3">
               <Switch
                 checked={form.auto_record}
                 onCheckedChange={(value) => setForm((current) => ({ ...current, auto_record: value }))}

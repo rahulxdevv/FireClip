@@ -58,9 +58,7 @@ export default function RendersPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Create"
-        title="Render queue"
+      <PageHeader        title="Render queue"
         description="Asynchronous FFmpeg jobs. Rendering never blocks the API; progress is recorded per job."
         actions={
           <Link href="/exports">
@@ -87,7 +85,7 @@ export default function RendersPage() {
         </div>
 
         {tab === "jobs" ? (
-          <div className="divide-y divide-white/6">
+          <div className="divide-y divide-paper/6">
             {(jobs.data || []).length === 0 ? (
               <EmptyState title="No pipeline jobs" description="Ingestion, transcription, analysis and render jobs appear here." />
             ) : (
@@ -99,7 +97,7 @@ export default function RendersPage() {
                       <JobStatusBadge status={job.status} />
                     </div>
                     <p className="mt-0.5 font-mono text-[10px] text-faint">
-                      {job.stage} · {relativeTime(job.created_at)} {job.video_id ? `· video ${job.video_id.slice(0, 6)}` : ""}
+                      {job.stage}, {relativeTime(job.created_at)} {job.video_id ? `, video ${job.video_id.slice(0, 6)}` : ""}
                     </p>
                     {job.error_message ? <p className="mt-1 text-[11px] text-rose">{job.error_message}</p> : null}
                   </div>
@@ -124,7 +122,7 @@ export default function RendersPage() {
             }
           />
         ) : (
-          <div className="divide-y divide-white/6">
+          <div className="divide-y divide-paper/6">
             {(tab === "active" ? active : items).map((render) => (
               <div key={render.id} className="px-4 py-3.5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -139,12 +137,12 @@ export default function RendersPage() {
                       <Badge tone={render.status === "completed" ? "mint" : render.status === "failed" ? "rose" : "flame"}>
                         {render.status}
                       </Badge>
-                      <Badge tone="neutral">{render.preset} · {render.format}</Badge>
+                      <Badge tone="neutral">{render.preset}, {render.format}</Badge>
                     </div>
                     <p className="mt-1 truncate text-[11px] text-faint">
-                      {render.video_title || "Source video"} · requested {relativeTime(render.created_at)}
-                      {render.output_size_bytes ? ` · ${formatBytes(render.output_size_bytes)}` : ""}
-                      {render.render_seconds ? ` · encoded in ${render.render_seconds.toFixed(1)}s` : ""}
+                      {render.video_title || "Source video"}, requested {relativeTime(render.created_at)}
+                      {render.output_size_bytes ? `, ${formatBytes(render.output_size_bytes)}` : ""}
+                      {render.render_seconds ? `, encoded in ${render.render_seconds.toFixed(1)}s` : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -176,7 +174,7 @@ export default function RendersPage() {
                   </div>
                 ) : null}
                 {render.error_message ? (
-                  <p className="mt-2 rounded-lg border border-rose/20 bg-rose/5 px-3 py-2 text-[11.5px] leading-relaxed text-rose">
+                  <p className="mt-2 rounded-[var(--radius-control)] border border-rose/20 bg-rose/5 px-3 py-2 text-[11.5px] leading-relaxed text-rose">
                     {render.error_message}
                   </p>
                 ) : null}

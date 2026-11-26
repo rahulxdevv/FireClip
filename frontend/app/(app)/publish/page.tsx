@@ -112,10 +112,8 @@ export default function PublishPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Distribute"
-        title="Publishing"
-        description="Queue an export to a connected platform, immediately or on a schedule. A failed API call is reported as failed - never as published."
+      <PageHeader        title="Publishing"
+        description="Queue an export to a connected platform, immediately or on a schedule. A failed API call is reported as failed, never as published."
         actions={
           <Link href="/accounts">
             <Button size="sm" variant="outline">
@@ -128,7 +126,7 @@ export default function PublishPage() {
       {connected.length === 0 ? (
         <Alert title="No connected accounts" tone="info" className="mb-5">
           Connect YouTube, TikTok, Instagram or Facebook in{" "}
-          <Link href="/accounts" className="underline decoration-white/30 underline-offset-2 hover:text-paper">
+          <Link href="/accounts" className="underline decoration-paper/30 underline-offset-2 hover:text-paper">
             social accounts
           </Link>{" "}
           before scheduling a post.
@@ -148,14 +146,14 @@ export default function PublishPage() {
                 <option value="">Select a rendered file</option>
                 {(exportsList.data || []).map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.title || item.filename} · {item.format.toUpperCase()}
+                    {item.title || item.filename}, {item.format.toUpperCase()}
                   </option>
                 ))}
               </Select>
             </Field>
             {selectedExport ? (
               <p className="font-mono text-[10.5px] text-faint">
-                {selectedExport.width}×{selectedExport.height} · {formatDateTime(selectedExport.created_at)}
+                {selectedExport.width}×{selectedExport.height}, {formatDateTime(selectedExport.created_at)}
               </p>
             ) : null}
             <Field label="Account">
@@ -167,7 +165,7 @@ export default function PublishPage() {
                 <option value="">Select a connected account</option>
                 {connected.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.platform} · {account.account_name}
+                    {account.platform}, {account.account_name}
                   </option>
                 ))}
               </Select>
@@ -246,7 +244,7 @@ export default function PublishPage() {
                 description="Publishing jobs you create will appear in this queue."
               />
             ) : (
-              <div className="divide-y divide-white/6">
+              <div className="divide-y divide-paper/6">
                 {filtered.map((job) => (
                   <div key={job.id} className="px-4 py-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -261,7 +259,7 @@ export default function PublishPage() {
                         </p>
                         <p className="mt-1 font-mono text-[9.5px] text-faint">
                           {job.scheduled_for ? `scheduled ${formatDateTime(job.scheduled_for)}` : `created ${relativeTime(job.created_at)}`}
-                          {job.published_at ? ` · published ${relativeTime(job.published_at)}` : ""}
+                          {job.published_at ? `, published ${relativeTime(job.published_at)}` : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -285,7 +283,7 @@ export default function PublishPage() {
                       </div>
                     </div>
                     {job.error_message ? (
-                      <p className="mt-2 rounded-lg border border-rose/20 bg-rose/5 px-2.5 py-1.5 text-[10.5px] leading-relaxed text-rose">
+                      <p className="mt-2 rounded-[var(--radius-control)] border border-rose/20 bg-rose/5 px-2.5 py-1.5 text-[10.5px] leading-relaxed text-rose">
                         {job.error_message}
                       </p>
                     ) : null}

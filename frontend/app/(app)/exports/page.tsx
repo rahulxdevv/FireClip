@@ -31,7 +31,7 @@ export default function ExportsPage() {
   const [shareForm, setShareForm] = React.useState({ expires: "30", password: "" });
   const [creatingShare, setCreatingShare] = React.useState(false);
   const [shareError, setShareError] = React.useState<string | null>(null);
-
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
   React.useEffect(() => {
     if (!shareFor) return;
     let active = true;
@@ -99,16 +99,35 @@ export default function ExportsPage() {
     }
   }
 
+  function toggleSelected(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function downloadZip(ids: string[]) {
+    if (!ids.length) return;
+    window.location.assign(`/api/exports/zip?ids=${encodeURIComponent(ids.join(","))}`);
+  }
+
+  const allIds = (exports.data || []).map((item) => item.id);
+
   return (
     <div>
-      <PageHeader
-        eyebrow="Create"
-        title="Exports"
+    <PageHeader        title="Exports"
         description="Every file FFmpeg has produced for this workspace, with its real dimensions and duration."
         actions={
-          <Link href="/renders">
-            <Button size="sm" variant="outline">Render queue</Button>
-          </Link>
+          <>
+            <Button size="sm" variant="outline" onClick={() => downloadZip(allIds)} disabled={!allIds.length}>
+              <Download className="h-3.5 w-3.5" /> Download all
+            </Button>
+            <Link href="/renders">
+              <Button size="sm" variant="outline">Render queue</Button>
+            </Link>
+          </>
         }
       />
 
@@ -132,6 +151,17 @@ export default function ExportsPage() {
           />
         </Panel>
       ) : (
+        <>
+          {selected.size ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/60 px-3 py-2">
+              <span className="text-[11px] text-muted">{selected.size} selected</span>
+              <Button size="sm" onClick={() => downloadZip([...selected])}>
+                <Download className="h-3 w-3" /> Download ZIP
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(allIds))}>Select all</Button>
+            </div>
+          ) : null}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(exports.data || []).map((item) => (
             <Panel key={item.id} className="overflow-hidden">
@@ -148,6 +178,15 @@ export default function ExportsPage() {
                   <span className="font-mono">{item.width}×{item.height}</span>
                   <span className="font-mono">{formatDuration(item.duration_ms, true)}</span>
                 </div>
+                <label className="absolute left-2 top-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border border-paper/20 bg-black/70">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${item.filename}`}
+                    checked={selected.has(item.id)}
+                    onChange={() => toggleSelected(item.id)}
+                    className="h-3.5 w-3.5 accent-orange-500"
+                  />
+                </label>
                 <span className="absolute right-2 top-2">
                   <Badge tone="neutral">{item.format.toUpperCase()}</Badge>
                 </span>
@@ -155,7 +194,7 @@ export default function ExportsPage() {
               <div className="p-3.5">
                 <p className="truncate text-[13px] font-medium">{item.title || item.filename}</p>
                 <p className="mt-0.5 text-[11px] text-faint">
-                  {formatBytes(item.size_bytes)} · {relativeTime(item.created_at)}
+                  {formatBytes(item.size_bytes)}, {relativeTime(item.created_at)}
                 </p>
                 <div className="mt-3 flex items-center gap-1.5">
                   <a href={item.download_url} className="flex-1">
@@ -185,6 +224,7 @@ export default function ExportsPage() {
             </Panel>
           ))}
         </div>
+        </>
       )}
 
       <Dialog
@@ -226,13 +266,13 @@ export default function ExportsPage() {
             {sharesLoading ? (
               <PageSkeleton />
             ) : shares.length === 0 ? (
-              <p className="rounded-lg border border-white/8 bg-ink-850/50 px-3 py-4 text-[12px] text-faint">
+              <p className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 px-3 py-4 text-[12px] text-faint">
                 No active links for this export yet.
               </p>
             ) : (
               <div className="space-y-2">
                 {shares.map((share) => (
-                  <div key={share.id} className="rounded-lg border border-white/8 bg-ink-850/50 p-3">
+                  <div key={share.id} className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 p-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="min-w-0 flex-1 break-all font-mono text-[10.5px] text-muted">{share.url}</span>
                       <Button
@@ -251,8 +291,8 @@ export default function ExportsPage() {
                       </Button>
                     </div>
                     <p className="mt-1.5 font-mono text-[10px] text-faint">
-                      {share.has_password ? "password protected · " : "public · "}
-                      {share.expires_at ? `expires ${new Date(share.expires_at).toLocaleDateString()} · ` : "no expiry · "}
+                      {share.has_password ? "password protected, " : "public, "}
+                      {share.expires_at ? `expires ${new Date(share.expires_at).toLocaleDateString()}, ` : "no expiry, "}
                       {share.view_count} {share.view_count === 1 ? "view" : "views"}
                     </p>
                   </div>

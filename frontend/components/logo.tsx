@@ -1,6 +1,11 @@
 import { cn } from "@/lib/cn";
 
-export function LogoMark({ className, size = 32 }: { className?: string; size?: number }) {
+/**
+ * The mark: one flame with a flame-shaped counter cut out of it, drawn on a 64
+ * unit grid. The tip leans right and the counter sits low left, so the outline
+ * still reads as fire at 16px where a thinner silhouette collapses into a comma.
+ */
+export function LogoMark({ className, size = 28 }: { className?: string; size?: number }) {
   return (
     <svg
       width={size}
@@ -10,27 +15,20 @@ export function LogoMark({ className, size = 32 }: { className?: string; size?: 
       aria-label="FireClip"
       className={cn("shrink-0", className)}
     >
-      <defs>
-        <linearGradient id="fireclip-flame" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FF8A45" />
-          <stop offset="1" stopColor="#E85812" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="16" fill="#111116" />
       <path
-        d="M33 9c2 9-5 12-7 19-1.6 5.6 2 8 5 8 3.4 0 6-2.6 6-6 4 4 7 8 7 13 0 7-6.7 12-12.5 12C23 55 17 48.6 17 40.5 17 27 33 23 33 9Z"
-        fill="url(#fireclip-flame)"
+        d="M39 4.5C41 13.5 46 21 46 31.5C46 43.4 39.2 52.5 30.4 52.5C21.6 52.5 15 44.4 15 34.6C15 26 22 20.6 27 14.6C30.4 10.4 33.4 7.6 39 4.5ZM29.5 29C33 34 34.8 37.6 34.8 41.4C34.8 45 32.4 47.6 29.2 47.6C26 47.6 23.8 45 23.8 41.4C23.8 37.4 26.4 33.6 29.5 29Z"
+        fill="currentColor"
+        fillRule="evenodd"
       />
-      <path d="M29 36.5 42 44l-13 7.5v-15Z" fill="#0b0b0f" />
     </svg>
   );
 }
 
-export function Logo({ className, size = 30 }: { className?: string; size?: number }) {
+export function Logo({ className, size = 28 }: { className?: string; size?: number }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark size={size} />
-      <span className="text-[17px] font-semibold tracking-tight text-paper">
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <LogoMark size={size} className="text-flame-500" />
+      <span className="font-display text-[19px] font-semibold tracking-[-0.035em] text-paper">
         fireclip<span className="text-flame-500">.</span>
       </span>
     </span>

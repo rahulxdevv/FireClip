@@ -134,7 +134,6 @@ export default function WebhooksPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
-        eyebrow="Settings"
         title="Webhooks"
         description="Send signed events to your own service when clips are approved, rendered, published or shared."
         actions={
@@ -180,11 +179,11 @@ export default function WebhooksPage() {
                     </Badge>
                   </div>
                   <p className="mt-1 text-[11px] text-faint">
-                    {endpoint.description || "No description"} · created {relativeTime(endpoint.created_at)}
+                    {endpoint.description || "No description"}, created {relativeTime(endpoint.created_at)}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {endpoint.events.map((event) => (
-                      <span key={event} className="rounded border border-white/8 bg-ink-850 px-1.5 py-0.5 font-mono text-[9.5px] text-muted">
+                      <span key={event} className="rounded border border-paper/8 bg-ink-850 px-1.5 py-0.5 font-mono text-[9.5px] text-muted">
                         {event}
                       </span>
                     ))}
@@ -205,7 +204,7 @@ export default function WebhooksPage() {
                   </Button>
                 </div>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/7 pt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-paper/7 pt-3">
                 <span className="text-[10.5px] text-faint">Signing secret</span>
                 <code className="min-w-0 flex-1 truncate rounded bg-ink-950 px-2 py-1 font-mono text-[10px] text-muted">
                   {endpoint.secret}
@@ -261,7 +260,7 @@ export default function WebhooksPage() {
           <div>
             <p className="mb-2 text-[13px] font-medium text-muted">Events</p>
             <div className="grid gap-1.5 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded border border-white/8 px-2.5 py-1.5 text-[11.5px]">
+              <label className="flex items-center gap-2 rounded border border-paper/8 px-2.5 py-1.5 text-[11.5px]">
                 <input
                   type="checkbox"
                   checked={form.events.includes("*")}
@@ -271,7 +270,7 @@ export default function WebhooksPage() {
                 All events
               </label>
               {availableEvents.map((event) => (
-                <label key={event} className="flex items-center gap-2 rounded border border-white/8 px-2.5 py-1.5 text-[11.5px]">
+                <label key={event} className="flex items-center gap-2 rounded border border-paper/8 px-2.5 py-1.5 text-[11.5px]">
                   <input
                     type="checkbox"
                     checked={form.events.includes(event)}
@@ -296,16 +295,16 @@ export default function WebhooksPage() {
         {deliveriesLoading ? (
           <PageSkeleton />
         ) : deliveries.length === 0 ? (
-          <p className="rounded-lg border border-white/8 bg-ink-850/50 px-3 py-4 text-[12px] text-faint">
+          <p className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 px-3 py-4 text-[12px] text-faint">
             No deliveries recorded yet. Use Test to send one now.
           </p>
         ) : (
-          <div className="divide-y divide-white/6 rounded-lg border border-white/8">
+          <div className="divide-y divide-paper/6 rounded-[var(--radius-control)] border border-paper/8">
             {deliveries.map((delivery) => (
               <div key={delivery.id} className="flex flex-wrap items-center gap-2 px-3 py-2.5">
                 <Badge tone={delivery.ok ? "mint" : "rose"}>{delivery.status_code || "error"}</Badge>
                 <span className="min-w-0 flex-1 font-mono text-[11px] text-muted">{delivery.event}</span>
-                <span className="font-mono text-[10px] text-faint">{delivery.duration_ms}ms · {relativeTime(delivery.created_at)}</span>
+                <span className="text-[10px] text-faint">{delivery.duration_ms} ms, {relativeTime(delivery.created_at)}</span>
                 {delivery.error ? (
                   <p className="w-full break-words text-[10.5px] text-rose">{delivery.error}</p>
                 ) : null}

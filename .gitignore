@@ -31,3 +31,11 @@ Thumbs.db
 # Test artifacts
 *.log
 smoke_tmp*
+
+# Local design scratch
+.hallmark/
+
+# Agent skills (local tooling)
+.agents/
+.claude/
+skills-lock.json

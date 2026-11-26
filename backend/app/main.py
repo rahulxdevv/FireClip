@@ -24,6 +24,7 @@ from .routers import (
     campaigns,
     clips,
     dashboard,
+    discover,
     editors,
     live,
     projects,
@@ -143,7 +144,7 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-for module in (auth, workspaces, projects, campaigns, videos, assets, clips, editors, renders, publishing, analytics, ai, dashboard, billing, shares, webhooks, live):
+for module in (auth, workspaces, projects, campaigns, videos, assets, clips, editors, renders, publishing, analytics, ai, dashboard, billing, shares, webhooks, live, discover):
     app.include_router(module.router)
 
 

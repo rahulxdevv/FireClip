@@ -88,9 +88,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader
-        eyebrow="Account"
-        title="My settings"
+      <PageHeader        title="My settings"
         description="Your personal profile and security settings. Workspace-level options live under Workspace."
       />
 
@@ -100,8 +98,8 @@ export default function SettingsPage() {
           <form onSubmit={saveProfile} className="space-y-4 p-5">
             <div className="flex items-center gap-3">
               <span
-                className="flex h-12 w-12 items-center justify-center rounded-xl text-[16px] font-semibold text-[#160b04]"
-                style={{ backgroundColor: user?.avatar_color || "#ff6a1f" }}
+                className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-card)] text-[16px] font-semibold text-seed"
+                style={{ backgroundColor: user?.avatar_color || "var(--color-flame-500)" }}
               >
                 {(user?.name || "?").slice(0, 1).toUpperCase()}
               </span>
@@ -116,7 +114,7 @@ export default function SettingsPage() {
             <Field label="Email" hint="Contact the operator if you need to change the address on this account.">
               <Input value={user?.email || ""} disabled />
             </Field>
-            <div className="rounded-lg border border-white/8 bg-ink-850/50 p-3">
+            <div className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850/50 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-[12px]">
                   <MailCheck className="h-4 w-4 text-faint" />
@@ -143,7 +141,7 @@ export default function SettingsPage() {
                 )}
               </div>
               {verifyLink ? (
-                <p className="mt-2 break-all font-mono text-[10px] text-faint">
+                <p className="mt-2 break-all text-[10.5px] text-faint">
                   Development link:{" "}
                   <a href={verifyLink} className="text-flame-400 hover:text-flame-500">
                     {verifyLink}
@@ -200,10 +198,10 @@ export default function SettingsPage() {
 
         <Panel>
           <PanelHeader title="Session & access" />
-          <div className="divide-y divide-white/6 text-[11.5px]">
+          <div className="divide-y divide-paper/6 text-[11.5px]">
             <div className="flex items-center justify-between gap-3 px-5 py-3">
               <span className="flex items-center gap-2 text-muted"><ShieldCheck className="h-4 w-4 text-mint" /> Session storage</span>
-              <span className="font-mono text-faint">HTTP-only cookie · SameSite=Lax</span>
+              <span className="font-mono text-faint">HTTP-only cookie, SameSite=Lax</span>
             </div>
             <div className="flex items-center justify-between gap-3 px-5 py-3">
               <span className="flex items-center gap-2 text-muted"><UserRound className="h-4 w-4" /> Workspace role</span>

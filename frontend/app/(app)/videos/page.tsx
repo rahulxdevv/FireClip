@@ -74,9 +74,7 @@ export default function VideosPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Workspace"
-        title="Video library"
+      <PageHeader        title="Video library"
         description="Every source video in this workspace, with its processing state and metadata."
         actions={
           <>
@@ -186,18 +184,18 @@ export default function VideosPage() {
               <button
                 key={project.id}
                 onClick={() => setProjectId(project.id === projectId ? "" : project.id)}
-                className={`rounded-xl border p-4 text-left transition-colors ${
+                className={`rounded-[var(--radius-card)] border p-4 text-left transition-colors ${
                   projectId === project.id
                     ? "border-flame-500/40 bg-flame-500/5"
-                    : "border-white/8 bg-ink-900 hover:border-white/16"
+                    : "border-paper/8 bg-ink-900 hover:border-paper/16"
                 }`}
               >
                 <p className="text-[13px] font-medium">{project.name}</p>
                 <p className="mt-1 line-clamp-2 min-h-[16px] text-[11px] leading-relaxed text-faint">
                   {project.description || "No description"}
                 </p>
-                <p className="mt-2 font-mono text-[10px] text-faint">
-                  {project.video_count} videos · {relativeTime(project.created_at)}
+                <p className="mt-2 text-[10.5px] text-faint">
+                  {project.video_count} videos, {relativeTime(project.created_at)}
                 </p>
               </button>
             ))}

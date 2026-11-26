@@ -10,7 +10,7 @@ export function SignalBars({ signals }: { signals: Record<string, number> }) {
       {entries.map(([key, value]) => (
         <div key={key} className="flex items-center gap-2.5">
           <span className="w-[104px] shrink-0 text-[11px] capitalize text-muted">{key.replace(/_/g, " ")}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/6">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-paper/6">
             <div
               className={cn(
                 "h-full rounded-full",
@@ -29,7 +29,7 @@ export function SignalBars({ signals }: { signals: Record<string, number> }) {
 export function ViewsChart({ data }: { data: Array<{ date: string; views: number }> }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-white/10">
+      <div className="flex h-44 items-center justify-center rounded-[var(--radius-control)] border border-dashed border-paper/10">
         <p className="text-[12px] text-faint">No measured performance data yet</p>
       </div>
     );
@@ -68,9 +68,9 @@ export function PlatformBars({
         <div key={String(row.platform)}>
           <div className="mb-1 flex items-center justify-between text-[11.5px]">
             <span className="capitalize text-muted">{String(row.platform)}</span>
-            <span className="font-mono text-faint">{Number(row.views || 0).toLocaleString()} views</span>
+            <span className="text-faint">{Number(row.views || 0).toLocaleString()} views</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/6">
+          <div className="h-1.5 overflow-hidden rounded-full bg-paper/6">
             <div
               className="h-full rounded-full bg-ember/80"
               style={{ width: `${Math.max(2, (Number(row.views || 0) / max) * 100)}%` }}

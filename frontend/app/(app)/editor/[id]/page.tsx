@@ -15,6 +15,7 @@ import {
   Redo2,
   Scissors,
   Sparkles,
+  Trash2,
   Undo2,
   Upload,
   Volume2,
@@ -148,6 +149,7 @@ export default function EditorPage() {
   const [templateOpen, setTemplateOpen] = React.useState(false);
   const [templateName, setTemplateName] = React.useState("");
   const [savingTemplate, setSavingTemplate] = React.useState(false);
+  const [includeLook, setIncludeLook] = React.useState(true);
   const [translationLanguage, setTranslationLanguage] = React.useState("en");
   const [translating, setTranslating] = React.useState(false);
 
@@ -410,13 +412,13 @@ export default function EditorPage() {
       await api.post(`/api/videos/${videoId}/clips`, {
         start_ms: draft.trim_start_ms,
         end_ms: splitAt,
-        title: `${draft.name} - part 1`,
+        title: `${draft.name} (part 1)`,
         aspect_ratio: draft.aspect_ratio,
       });
       await api.post(`/api/videos/${videoId}/clips`, {
         start_ms: splitAt,
         end_ms: draft.trim_end_ms,
-        title: `${draft.name} - part 2`,
+        title: `${draft.name} (part 2)`,
         aspect_ratio: draft.aspect_ratio,
       });
       if (project.clip_id) {
@@ -495,19 +497,58 @@ export default function EditorPage() {
     headingUppercase: Boolean(overrides.heading_uppercase ?? activeConfig.heading_uppercase ?? false),
   };
 
+  function applyCaptionStyle(style: CaptionStyle) {
+    const config = (style.config || {}) as Record<string, unknown>;
+    const look = includeLook ? (config.look as Partial<Draft> | undefined) : undefined;
+    const patch: Partial<Draft> = { caption_style_id: style.id, caption_overrides: {} };
+    if (look && typeof look === "object") {
+      if (look.layout) patch.layout = { ...draft.layout, ...look.layout };
+      if (Array.isArray(look.overlays)) patch.overlays = look.overlays;
+      if (look.music !== undefined) patch.music = look.music;
+      if (look.audio) patch.audio = { ...draft.audio, ...look.audio };
+      if (typeof look.focus_x === "number") patch.focus_x = look.focus_x;
+      if (typeof look.focus_y === "number") patch.focus_y = look.focus_y;
+      if (typeof look.captions_enabled === "boolean") patch.captions_enabled = look.captions_enabled;
+    }
+    apply(patch);
+  }
+
+  async function deleteCaptionStyle(style: CaptionStyle) {
+    if (!window.confirm(`Delete the preset "${style.name}"? Existing projects keep their current look.`)) return;
+    try {
+      await api.delete(`/api/caption-styles/${style.id}`);
+      if (draft.caption_style_id === style.id) {
+        apply({ caption_style_id: null, caption_overrides: {} });
+      }
+      await styles.refresh();
+      toast("Preset deleted", "success");
+    } catch (err) {
+      toast(errorMessage(err), "error");
+    }
+  }
+
   async function saveTemplate() {
     const name = templateName.trim();
     if (!name) return;
     setSavingTemplate(true);
     try {
+      const look = {
+        layout: draft.layout,
+        overlays: draft.overlays,
+        music: draft.music,
+        audio: draft.audio,
+        focus_x: draft.focus_x,
+        focus_y: draft.focus_y,
+        captions_enabled: draft.captions_enabled,
+      };
       await api.post("/api/caption-styles", {
         name,
-        config: { ...activeConfig, ...overrides },
+        config: { ...activeConfig, ...overrides, look: includeLook ? look : undefined },
       });
       await styles.refresh();
       setTemplateOpen(false);
       setTemplateName("");
-      toast("Caption template saved", "success");
+      toast(includeLook ? "Full look saved" : "Caption template saved", "success");
     } catch (err) {
       toast(errorMessage(err), "error");
     } finally {
@@ -528,7 +569,7 @@ export default function EditorPage() {
 
       <PageHeader
         title={draft.name}
-        description={`${formatDuration(durationSeconds)} selected · ${draft.width}×${draft.height} · ${draft.audio.muted ? "audio muted" : "audio on"}`}
+        description={`${formatDuration(durationSeconds)} selected, ${draft.width}×${draft.height}, ${draft.audio.muted ? "audio muted" : "audio on"}`}
         actions={
           <>
             <div className="flex items-center gap-1">
@@ -728,15 +769,16 @@ export default function EditorPage() {
                     <Select
                       value={draft.layout.mode || "fill"}
                       onChange={(event) =>
-                        apply({ layout: { ...draft.layout, mode: event.target.value as "fill" | "fit" | "facecam" } })
+                        apply({ layout: { ...draft.layout, mode: event.target.value as "fill" | "fit" | "facecam" | "gameplay" } })
                       }
                     >
                       <option value="fill">Fill the screen</option>
                       <option value="fit">Fit with blurred background</option>
-                      <option value="facecam">Face cam over gameplay</option>
+                      <option value="gameplay">Gameplay + camera</option>
+                      <option value="facecam">Camera on blurred background</option>
                     </Select>
                   </Field>
-                  {draft.layout.mode === "facecam" ? (
+                  {draft.layout.mode === "facecam" || draft.layout.mode === "gameplay" ? (
                     <>
                       <Field label="Camera position">
                         <Select
@@ -898,29 +940,55 @@ export default function EditorPage() {
                   label="Burn captions into the video"
                 />
                 <div>
-                  <p className="mb-2 text-[11px] font-medium text-muted">Creator presets</p>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-medium text-muted">Creator presets</p>
+                    <Switch
+                      checked={includeLook}
+                      onCheckedChange={setIncludeLook}
+                      label="Apply full look"
+                    />
+                  </div>
                   <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-1">
                     {(styles.data || []).map((style) => {
                       const config = style.config as Record<string, unknown>;
                       const active = draft.caption_style_id === style.id;
+                      const hasLook = Boolean(config.look);
                       return (
-                        <button
-                          key={style.id}
-                          type="button"
-                          onClick={() => apply({ caption_style_id: style.id, caption_overrides: {} })}
-                          className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-[10.5px] ${
-                            active ? "border-flame-500/40 bg-flame-500/8 text-paper" : "border-white/8 text-muted hover:border-white/16"
-                          }`}
-                        >
-                          <span
-                            className="h-5 w-5 shrink-0 rounded-sm border border-white/20"
-                            style={{ background: String(config.box_color || "#0b0b0f"), color: String(config.highlight_color || "#ff6a1f") }}
+                        <div key={style.id} className="group relative">
+                          <button
+                            type="button"
+                            onClick={() => applyCaptionStyle(style)}
+                            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 pr-5 text-left text-[10.5px] ${
+                              active ? "border-flame-500/40 bg-flame-500/8 text-paper" : "border-white/8 text-muted hover:border-white/16"
+                            }`}
                           >
-                            <span className="flex h-full items-center justify-center text-[8px] font-bold" style={{ color: String(config.highlight_color || "#ff6a1f") }}>Aa</span>
-                          </span>
-                          <span className="min-w-0 flex-1 truncate">{style.name}</span>
-                          {style.is_builtin ? <span className="text-[8px] uppercase text-faint">preset</span> : null}
-                        </button>
+                            <span
+                              className="h-5 w-5 shrink-0 rounded-sm border border-white/20"
+                              style={{
+                                background: String(config.box_color || "var(--color-seed)"),
+                                color: String(config.highlight_color || "var(--color-flame-500)"),
+                              }}
+                            >
+                              <span className="flex h-full items-center justify-center text-[8px] font-bold" style={{ color: String(config.highlight_color || "var(--color-flame-500)") }}>Aa</span>
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{style.name}</span>
+                            {style.is_builtin ? (
+                              <span className="text-[9px] text-faint">preset</span>
+                            ) : hasLook ? (
+                              <span className="text-[9px] text-mint">look</span>
+                            ) : null}
+                          </button>
+                          {!style.is_builtin ? (
+                            <button
+                              type="button"
+                              aria-label={`Delete ${style.name}`}
+                              onClick={() => deleteCaptionStyle(style)}
+                              className="absolute right-1 top-1 rounded p-0.5 text-faint opacity-0 transition hover:bg-white/10 hover:text-rose-300 group-hover:opacity-100"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          ) : null}
+                        </div>
                       );
                     })}
                   </div>
@@ -935,7 +1003,7 @@ export default function EditorPage() {
                     <option value="">Workspace default</option>
                     {(styles.data || []).map((style) => (
                       <option key={style.id} value={style.id}>
-                        {style.name}{style.is_builtin ? " · built-in" : ""}
+                        {style.name}{style.is_builtin ? ", built-in" : ""}
                       </option>
                     ))}
                   </Select>
@@ -1016,7 +1084,7 @@ export default function EditorPage() {
                     />
                   </Field>
                   <Button variant="outline" size="sm" className="mt-5" onClick={() => setTemplateOpen(true)}>
-                    Save as template
+                    Save preset
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1111,8 +1179,8 @@ export default function EditorPage() {
                 <Dialog
                   open={templateOpen}
                   onOpenChange={setTemplateOpen}
-                  title="Save caption template"
-                  description="Stores the current style and overrides for reuse across projects and campaigns."
+                  title="Save look preset"
+                  description="Stores the current caption design and, optionally, the layout, overlays, audio and framing."
                   footer={
                     <>
                       <Button variant="ghost" onClick={() => setTemplateOpen(false)}>Cancel</Button>
@@ -1122,7 +1190,14 @@ export default function EditorPage() {
                     </>
                   }
                 >
-                  <Field label="Template name">
+                  <div className="mb-3 rounded-lg border border-white/8 bg-ink-850/60 p-3">
+                    <Switch
+                      checked={includeLook}
+                      onCheckedChange={setIncludeLook}
+                      label="Include layout, overlays, audio and framing"
+                    />
+                  </div>
+                  <Field label="Preset name">
                     <Input
                       autoFocus
                       maxLength={80}
@@ -1303,7 +1378,7 @@ export default function EditorPage() {
                   </div>
                 )}
                 <Alert tone="info">
-                  Stock footage and AI video B-roll search are not bundled - they require a licensed provider.
+                  Stock footage and AI video B-roll search are not bundled; they require a licensed provider.
                   Uploaded images work as B-roll overlays today.
                 </Alert>
               </div>
@@ -1323,16 +1398,16 @@ export default function EditorPage() {
                   >
                     {PRESETS.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.label} · {item.size}
+                        {item.label}, {item.size}
                       </option>
                     ))}
                   </Select>
                 </Field>
                 <Field label="Container">
                   <Select value={format} onChange={(event) => setFormat(event.target.value)}>
-                    <option value="mp4">MP4 · H.264 + AAC (recommended)</option>
-                    <option value="mov">MOV · H.264 + AAC</option>
-                    <option value="webm">WebM · VP9 + Opus</option>
+                    <option value="mp4">MP4, H.264 + AAC (recommended)</option>
+                    <option value="mov">MOV, H.264 + AAC</option>
+                    <option value="webm">WebM, VP9 + Opus</option>
                   </Select>
                 </Field>
                 <div className="rounded-lg border border-white/8 bg-ink-850/60 p-3 text-[11px] text-faint">
@@ -1369,7 +1444,7 @@ export default function EditorPage() {
                     ) : null}
                     {renderJob.data.download_url ? (
                       <a href={renderJob.data.download_url} className="mt-2 block text-[11.5px] text-flame-400 hover:text-flame-500">
-                        Download the rendered file →
+                        Download the rendered file
                       </a>
                     ) : null}
                   </div>
@@ -1378,7 +1453,7 @@ export default function EditorPage() {
                 <div className="border-t border-white/8 pt-3">
                   <p className="text-[11px] font-medium text-muted">Export library</p>
                   <Link href="/exports" className="mt-1 block text-[11px] text-faint hover:text-paper">
-                    All rendered files →
+                    All rendered files
                   </Link>
                 </div>
               </div>
@@ -1393,10 +1468,10 @@ export default function EditorPage() {
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link href={`/videos/${videoId}`} className="text-[11px] text-flame-400 hover:text-flame-500">
-                Transcript & analysis →
+                Transcript & analysis
               </Link>
               <Link href="/renders" className="text-[11px] text-faint hover:text-paper">
-                Render queue →
+                Render queue
               </Link>
             </div>
           </Panel>
@@ -1443,7 +1518,7 @@ export default function EditorPage() {
             <option value="">Select a clip</option>
             {siblingClips.map((clip) => (
               <option key={clip.id} value={clip.id}>
-                {formatTimecode(clip.start_ms)} - {clip.title.slice(0, 50)}
+                {formatTimecode(clip.start_ms)} / {clip.title.slice(0, 50)}
               </option>
             ))}
           </Select>

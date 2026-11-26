@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from ..config import settings
 from ..deps import RequestContext, get_context, record_audit
@@ -23,7 +23,7 @@ from ..models import (
     User,
 )
 from ..schemas import DashboardOut, NotificationOut, SystemStatus
-from ..services import billing, media, publishing as pub_service, transcription
+from ..services import billing, media, publishing as pub_service, storage_guard, transcription
 from ..services.ai import PROVIDERS
 from ..storage import get_storage
 from .common import clip_out, render_out, video_out
@@ -83,7 +83,10 @@ def dashboard(ctx: RequestContext = Depends(get_context)):
     notifications = list(
         db.scalars(
             select(Notification)
-            .where(Notification.workspace_id == wid, Notification.user_id.is_(None) | Notification.user_id == ctx.user.id)
+            .where(
+                Notification.workspace_id == wid,
+                or_(Notification.user_id.is_(None), Notification.user_id == ctx.user.id),
+            )
             .order_by(Notification.created_at.desc())
             .limit(8)
         )
@@ -177,7 +180,7 @@ def list_notifications(
 ):
     query = select(Notification).where(
         Notification.workspace_id == ctx.workspace.id,
-        Notification.user_id.is_(None) | Notification.user_id == ctx.user.id,
+        or_(Notification.user_id.is_(None), Notification.user_id == ctx.user.id),
     )
     if unread_only:
         query = query.where(Notification.read_at.is_(None))
@@ -190,7 +193,7 @@ def read_all(ctx: RequestContext = Depends(get_context)):
     for note in ctx.db.scalars(
         select(Notification).where(
             Notification.workspace_id == ctx.workspace.id,
-            Notification.user_id.is_(None) | Notification.user_id == ctx.user.id,
+            or_(Notification.user_id.is_(None), Notification.user_id == ctx.user.id),
             Notification.read_at.is_(None),
         )
     ):
@@ -238,6 +241,12 @@ def system_status(ctx: RequestContext = Depends(get_context)):
         "database": settings.database_url.split("://", 1)[0],
         "job_runner": "arq" if settings.use_arq else "inline",
         "ytdlp": __import__("app.services.sources", fromlist=["ytdlp_available"]).ytdlp_available(),
+        "workspace_storage_bytes": storage_guard.workspace_bytes(ctx.db, ctx.workspace.id),
+        "disk_free_gb": (
+            round(shutil.disk_usage(settings.data_dir).free / storage_guard.GIGABYTE, 2)
+            if settings.storage_backend.lower() != "s3"
+            else None
+        ),
     }
 
 

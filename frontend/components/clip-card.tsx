@@ -142,7 +142,7 @@ export function ClipCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/8 bg-ink-900">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-paper/8 bg-ink-900">
       <div className={cn("p-4", compact && "p-3.5")}>
         <div className="flex items-start gap-3">
           {onToggleSelect ? (
@@ -164,17 +164,12 @@ export function ClipCard({
                 {clip.status}
               </Badge>
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10.5px] text-faint">
-              <span>{formatTimecode(clip.start_ms)} → {formatTimecode(clip.end_ms)}</span>
-              <span>·</span>
-              <span>{formatDuration(clip.duration_ms, true)}</span>
-              <span>·</span>
-              <span>{clip.aspect_ratio}</span>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-faint">
+              <span className="font-mono">{formatTimecode(clip.start_ms)} → {formatTimecode(clip.end_ms)}</span>
+              <span className="border-l border-paper/[0.1] pl-2">{formatDuration(clip.duration_ms, true)}</span>
+              <span className="border-l border-paper/[0.1] pl-2">{clip.aspect_ratio}</span>
               {clip.source === "manual" ? (
-                <>
-                  <span>·</span>
-                  <span className="text-ember">manual</span>
-                </>
+                <span className="border-l border-paper/[0.1] pl-2 text-ember">manual</span>
               ) : null}
             </p>
           </div>
@@ -185,7 +180,7 @@ export function ClipCard({
             {topSignals.map(([key, value]) => (
               <span
                 key={key}
-                className="rounded border border-white/8 bg-ink-850 px-1.5 py-0.5 font-mono text-[9.5px] capitalize text-muted"
+                className="rounded border border-paper/8 bg-ink-850 px-1.5 py-0.5 font-mono text-[9.5px] capitalize text-muted"
               >
                 {key.replace(/_/g, " ")} {Math.round(value)}
               </span>
@@ -227,7 +222,7 @@ export function ClipCard({
           >
             <MessageSquare className="h-3 w-3" /> Comments
             {(clip.comment_count || 0) > 0 ? (
-              <span className="ml-0.5 rounded bg-white/8 px-1 font-mono text-[9.5px]">
+              <span className="ml-0.5 rounded bg-paper/8 px-1 font-mono text-[9.5px]">
                 {clip.comment_count}
               </span>
             ) : null}
@@ -243,7 +238,7 @@ export function ClipCard({
       </div>
 
       {expanded ? (
-        <div className="space-y-4 border-t border-white/7 bg-ink-850/40 p-4">
+        <div className="space-y-4 border-t border-paper/7 bg-ink-850/40 p-4">
           <div>
             <p className="label-caps mb-2">Signal breakdown</p>
             <SignalBars signals={clip.signals || {}} />
@@ -261,7 +256,7 @@ export function ClipCard({
             </div>
           ) : null}
 
-          <div className="border-t border-white/7 pt-3">
+          <div className="border-t border-paper/7 pt-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="label-caps">Review comments</p>
               {(clip.open_comment_count || 0) > 0 ? (
@@ -271,7 +266,7 @@ export function ClipCard({
             {commentsLoading && comments.length === 0 ? (
               <Skeleton className="h-12" />
             ) : comments.length === 0 ? (
-              <p className="rounded-lg border border-white/8 bg-ink-900/60 px-3 py-3 text-[11.5px] text-faint">
+              <p className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-900/60 px-3 py-3 text-[11.5px] text-faint">
                 No comments yet. Leave timing or copy feedback for your team.
               </p>
             ) : (
@@ -280,8 +275,8 @@ export function ClipCard({
                   <div
                     key={comment.id}
                     className={
-                      "rounded-lg border px-3 py-2.5 " +
-                      (comment.resolved_at ? "border-white/6 bg-ink-900/40 opacity-65" : "border-white/8 bg-ink-900/70")
+                      "rounded-[var(--radius-control)] border px-3 py-2.5 " +
+                      (comment.resolved_at ? "border-paper/6 bg-ink-900/40 opacity-65" : "border-paper/8 bg-ink-900/70")
                     }
                   >
                     <div className="flex items-center gap-2">
@@ -297,7 +292,7 @@ export function ClipCard({
                         <button
                           onClick={() => toggleResolved(comment)}
                           disabled={commentBusy === comment.id}
-                          className="rounded px-1.5 py-0.5 text-[10px] text-faint hover:bg-white/5 hover:text-paper disabled:opacity-40"
+                          className="rounded px-1.5 py-0.5 text-[10px] text-faint hover:bg-paper/5 hover:text-paper disabled:opacity-40"
                         >
                           {comment.resolved_at ? "Reopen" : "Resolve"}
                         </button>
@@ -305,7 +300,7 @@ export function ClipCard({
                           <button
                             onClick={() => removeComment(comment)}
                             disabled={commentBusy === comment.id}
-                            className="rounded px-1.5 py-0.5 text-[10px] text-faint hover:bg-white/5 hover:text-rose disabled:opacity-40"
+                            className="rounded px-1.5 py-0.5 text-[10px] text-faint hover:bg-paper/5 hover:text-rose disabled:opacity-40"
                           >
                             Delete
                           </button>
@@ -321,7 +316,7 @@ export function ClipCard({
               <Textarea
                 value={commentText}
                 onChange={(event) => setCommentText(event.target.value)}
-                placeholder="Leave feedback for the editor…"
+                placeholder="Leave feedback for the editor..."
                 className="min-h-16 text-[12px]"
                 maxLength={2000}
               />
@@ -359,7 +354,7 @@ export function ClipCard({
               <p className="label-caps mb-1.5">Platform captions</p>
               <div className="space-y-2">
                 {Object.entries(content.captions).map(([platform, caption]) => (
-                  <div key={platform} className="rounded-lg border border-white/8 bg-ink-850 p-3">
+                  <div key={platform} className="rounded-[var(--radius-control)] border border-paper/8 bg-ink-850 p-3">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[11px] capitalize text-muted">{platform}</span>
                       <CopyButton text={caption} />
@@ -371,8 +366,8 @@ export function ClipCard({
             </div>
             <CopyBlock title="Thumbnail ideas" items={content.thumbnail_ideas} />
             <CopyBlock title="Calls to action" items={content.calls_to_action} />
-            <p className="font-mono text-[10px] text-faint">
-              generated by {content.provider} · {content.model}
+            <p className="text-[10.5px] text-faint">
+              Generated by {content.provider}, {content.model}
             </p>
           </div>
         ) : null}
@@ -390,7 +385,7 @@ function CopyBlock({ title, items, mono }: { title: string; items: string[]; mon
         {items.map((item, index) => (
           <div
             key={`${title}-${index}`}
-            className="flex items-start justify-between gap-3 rounded-lg border border-white/8 bg-ink-850 px-3 py-2"
+            className="flex items-start justify-between gap-3 rounded-[var(--radius-control)] border border-paper/8 bg-ink-850 px-3 py-2"
           >
             <p className={cn("text-[11.5px] leading-relaxed text-muted", mono && "font-mono")}>{item}</p>
             <CopyButton text={item} />

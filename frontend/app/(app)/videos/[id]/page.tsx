@@ -116,7 +116,7 @@ export default function VideoDetailPage() {
     }
   }
 
-  async function runAnalysis(form: { provider: string; target_duration_ms: number; clip_count: number }) {
+  async function runAnalysis(form: { provider: string; target_duration_ms: number; clip_count: number; ignore_static: boolean }) {
     setBusy("analyze");
     try {
       await api.post(`/api/videos/${id}/analyze`, {
@@ -225,7 +225,7 @@ export default function VideoDetailPage() {
       </div>
       <PageHeader
         title={data.title}
-        description={`${data.source_type === "upload" ? "Uploaded file" : `Imported from ${data.source_type}`} · ${formatDuration(data.duration_seconds)} · ${data.width}×${data.height} · ${formatBytes(data.size_bytes)}`}
+        description={`${data.source_type === "upload" ? "Uploaded file" : `Imported from ${data.source_type}`}, ${formatDuration(data.duration_seconds)}, ${data.width}×${data.height}, ${formatBytes(data.size_bytes)}`}
         actions={
           <>
             <Button variant="ghost" size="sm" onClick={() => setRenameOpen(true)}>
@@ -272,6 +272,24 @@ export default function VideoDetailPage() {
         </Alert>
       ) : null}
 
+      {(data.static_ranges || []).length ? (
+        <Panel className="mb-5 flex flex-wrap items-start gap-3 p-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-medium text-foreground">Still screens and ad breaks were skipped</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-faint">
+              {formatDuration(data.static_screen_seconds || 0)} of near-frozen footage was found. 
+              New clips are kept at least 65% outside these ranges.
+            </p>
+          </div>
+          <div className="flex max-w-full flex-wrap gap-1.5">
+            {(data.static_ranges || []).slice(0, 8).map((range) => (
+              <span key={`${range.start_ms}-${range.end_ms}`} className="rounded-md border border-white/8 px-2 py-1 font-mono text-[10px] text-faint">
+                {formatDuration(range.start_ms, true)}-{formatDuration(range.end_ms, true)}
+              </span>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-5">
           <Panel className="overflow-hidden">
@@ -377,8 +395,8 @@ export default function VideoDetailPage() {
                     <div className="flex flex-wrap items-center gap-2 border-b border-white/7 px-4 py-2.5">
                       <Badge tone="neutral">{transcript.data.language}</Badge>
                       <Badge tone="neutral">{transcript.data.engine}</Badge>
-                      <span className="font-mono text-[10px] text-faint">
-                        {transcript.data.word_count} words · {transcript.data.segments.length} segments
+                      <span className="text-[10px] text-faint">
+                        {transcript.data.word_count} words, {transcript.data.segments.length} segments
                       </span>
                       {transcript.data.speakers.length > 0 ? (
                         <div className="ml-auto flex flex-wrap gap-1.5">
@@ -444,7 +462,7 @@ export default function VideoDetailPage() {
                 done={Boolean(data.duration_seconds)}
                 active={["downloading", "probing"].includes(data.status)}
                 label="Probe media"
-                detail={`${data.width}×${data.height} · ${formatDuration(data.duration_seconds)}`}
+                detail={`${data.width}×${data.height}, ${formatDuration(data.duration_seconds)}`}
               />
               <PipelineStep
                 done={Boolean(data.has_transcript)}
@@ -452,7 +470,7 @@ export default function VideoDetailPage() {
                 label="Transcribe"
                 detail={
                   data.has_transcript
-                    ? `${transcript.data?.word_count ?? 0} words · ${transcript.data?.engine ?? "stored"}`
+                    ? `${transcript.data?.word_count ?? 0} words, ${transcript.data?.engine ?? "stored"}`
                     : "Waiting for an engine"
                 }
               />
@@ -477,7 +495,7 @@ export default function VideoDetailPage() {
               <div className="border-t border-white/7 px-4 py-3">
                 <InlineProgress
                   value={activeJob.progress}
-                  label={`${activeJob.kind} · ${activeJob.stage}`}
+                  label={`${activeJob.kind}, ${activeJob.stage}`}
                   status={activeJob.status}
                 />
               </div>
@@ -525,7 +543,7 @@ export default function VideoDetailPage() {
                       <JobStatusBadge status={job.status} />
                     </div>
                     <p className="mt-0.5 font-mono text-[9.5px] text-faint">
-                      {job.stage} · {relativeTime(job.created_at)}
+                      {job.stage}, {relativeTime(job.created_at)}
                     </p>
                     {job.error_message ? (
                       <p className="mt-1 line-clamp-2 text-[10.5px] text-rose">{job.error_message}</p>
@@ -659,7 +677,7 @@ function TranscribeDialog({
             <option value="auto">Auto (best available)</option>
             {options.map(([key, value]) => (
               <option key={key} value={key}>
-                {key} · {value.model}{value.local ? " · local" : ""}
+                {key}, {value.model}{value.local ? ", local" : ""}
               </option>
             ))}
           </Select>
@@ -671,7 +689,7 @@ function TranscribeDialog({
                 <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${value.available ? "bg-mint" : "bg-ink-600"}`} />
                 <span>
                   <span className="text-muted">{key}</span>
-                  {value.note ? ` - ${value.note}` : " - available"}
+                  {value.note ? `, ${value.note}` : ", available"}
                 </span>
               </p>
             ))}
@@ -701,12 +719,13 @@ function AnalyzeDialog({
   onOpenChange: (open: boolean) => void;
   providers: AIProvider[];
   busy: boolean;
-  onSubmit: (form: { provider: string; target_duration_ms: number; clip_count: number }) => void;
+  onSubmit: (form: { provider: string; target_duration_ms: number; clip_count: number; ignore_static: boolean }) => void;
   durationSeconds: number;
 }) {
   const [provider, setProvider] = React.useState("auto");
   const [duration, setDuration] = React.useState(45);
   const [count, setCount] = React.useState(6);
+  const [ignoreStatic, setIgnoreStatic] = React.useState(false);
   const configured = providers.filter((item) => item.provider !== "heuristic" && item.configured && item.enabled);
   return (
     <Dialog
@@ -719,7 +738,7 @@ function AnalyzeDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             loading={busy}
-            onClick={() => onSubmit({ provider, target_duration_ms: duration * 1000, clip_count: count })}
+            onClick={() => onSubmit({ provider, target_duration_ms: duration * 1000, clip_count: count, ignore_static: ignoreStatic })}
           >
             Run analysis
           </Button>
@@ -733,7 +752,7 @@ function AnalyzeDialog({
             <option value="heuristic">Built-in signal engine (offline)</option>
             {configured.map((item) => (
               <option key={item.provider} value={item.provider}>
-                {item.label} · {item.model}
+                {item.label}, {item.model}
               </option>
             ))}
           </Select>
@@ -771,7 +790,7 @@ function AnalyzeDialog({
             Source is {formatDuration(durationSeconds)} long. Very long targets can yield one clip.
           </p>
         </div>
-        <Field label={`Number of candidates - ${count}`}>
+        <Field label={`Number of candidates (${count})`}>
           <input
             type="range"
             min={1}
@@ -781,6 +800,18 @@ function AnalyzeDialog({
             className="w-full"
           />
         </Field>
+        <label className="flex items-start gap-2 rounded-lg border border-white/8 bg-ink-850/60 px-3 py-2 text-[11px] text-muted">
+          <input
+            type="checkbox"
+            checked={ignoreStatic}
+            onChange={(event) => setIgnoreStatic(event.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 accent-orange-500"
+          />
+          <span>
+            Keep moments on still screens, slates or ad cards. Normally those are skipped because they
+            make weak clips.
+          </span>
+        </label>
         <Alert tone="info">
           Every candidate includes a score breakdown and a written explanation. Loudness is not a signal.
         </Alert>
@@ -855,7 +886,7 @@ function ManualClipDialog({
           </Field>
         </div>
         <p className="font-mono text-[10.5px] text-faint">
-          {formatTimecode(start * 1000)} → {formatTimecode(end * 1000)} · {Math.max(0, end - start).toFixed(1)}s
+          {formatTimecode(start * 1000)} to {formatTimecode(end * 1000)}, {Math.max(0, end - start).toFixed(1)}s
         </p>
         <Field label="Title">
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Manual cut" />

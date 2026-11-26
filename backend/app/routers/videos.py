@@ -50,7 +50,7 @@ from ..schemas import (
     VideoOut,
     VideoUpdate,
 )
-from ..services import billing, sources as source_service
+from ..services import billing, sources as source_service, storage_guard
 from ..storage import build_key, get_storage, safe_filename
 from .common import clip_out, get_clip, get_video, video_detail, video_out
 from .media_utils import serve_key
@@ -95,6 +95,10 @@ async def upload_video(
     _limit=Depends(rate_limit("upload", 20)),
 ):
     ctx.require("editor")
+    try:
+        storage_guard.check_capacity(ctx.db, ctx.workspace.id, 0)
+    except storage_guard.StorageGuardError as exc:
+        raise HTTPException(status_code=507, detail=str(exc)) from exc
     original = safe_filename(file.filename or "upload.mp4")
     try:
         source_service.assert_media_extension(original)
@@ -123,6 +127,11 @@ async def upload_video(
         temp_path.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
     checksum = digest.hexdigest()
+    try:
+        storage_guard.check_capacity(ctx.db, ctx.workspace.id, size)
+    except storage_guard.StorageGuardError as exc:
+        temp_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=507, detail=str(exc)) from exc
     duplicate = ctx.db.scalar(
         select(SourceVideo).where(
             SourceVideo.workspace_id == ctx.workspace.id, SourceVideo.checksum == checksum
@@ -528,6 +537,7 @@ def analyze(
             "target_duration_ms": payload.target_duration_ms,
             "clip_count": payload.clip_count,
             "replace_existing": payload.replace_existing,
+            "ignore_static": payload.ignore_static,
         },
     )
     enqueue(job.id)

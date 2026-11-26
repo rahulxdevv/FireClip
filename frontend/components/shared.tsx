@@ -6,13 +6,11 @@ import { Button, Panel, Progress } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 export function PageHeader({
-  eyebrow,
   title,
   description,
   actions,
   children,
 }: {
-  eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
@@ -20,13 +18,16 @@ export function PageHeader({
 }) {
   return (
     <div className="mb-7">
-      {eyebrow ? <p className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-flame-500">{eyebrow}</p> : null}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-paper sm:text-[28px]">{title}</h1>
-          {description ? <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-muted">{description}</p> : null}
+          <h1 className="page-title text-paper">{title}</h1>
+          {description ? (
+            <p className="mt-2 max-w-[56ch] text-[13.5px] leading-relaxed text-muted">{description}</p>
+          ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">{actions}</div>
+        ) : null}
       </div>
       {children}
     </div>
@@ -49,16 +50,22 @@ export function StatCard({
   trend?: { value: number; label: string };
 }) {
   const content = (
-    <Panel className={cn("h-full p-4", href && "panel-hover")}>
+    <Panel className={cn("group h-full p-4", href && "panel-hover")}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[12px] text-muted">{label}</p>
-        {icon ? <span className="text-faint">{icon}</span> : null}
+        <p className="text-[12px] font-medium text-muted">{label}</p>
+        {icon ? (
+          <span className="shrink-0 text-ink-500 transition-colors group-hover:text-flame-500">
+            {icon}
+          </span>
+        ) : null}
       </div>
-      <p className="mt-3 text-[26px] font-semibold leading-none tracking-tight text-paper">{value}</p>
-      <div className="mt-2 flex items-center gap-2">
-        {hint ? <p className="text-[11.5px] text-faint">{hint}</p> : null}
+      <p className="mt-4 font-display text-[30px] font-semibold leading-none tracking-[-0.03em] text-paper">
+        {value}
+      </p>
+      <div className="mt-2.5 flex items-center gap-2">
+        {hint ? <p className="truncate text-[11.5px] text-faint">{hint}</p> : null}
         {trend ? (
-          <span className={cn("font-mono text-[10.5px]", trend.value >= 0 ? "text-mint" : "text-rose")}>
+          <span className={cn("text-[11px] font-medium", trend.value >= 0 ? "text-mint" : "text-rose")}>
             {trend.value >= 0 ? "+" : ""}
             {trend.value}% {trend.label}
           </span>
@@ -82,7 +89,7 @@ export function SectionHeader({
   return (
     <div className="mb-3 flex items-end justify-between gap-3">
       <div>
-        <h2 className="text-[14px] font-semibold text-paper">{title}</h2>
+        <h2 className="font-display text-[15px] font-semibold tracking-[-0.02em] text-paper">{title}</h2>
         {description ? <p className="mt-0.5 text-[12px] text-faint">{description}</p> : null}
       </div>
       {action}
@@ -104,15 +111,15 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
   return (
     <div className="flex flex-wrap items-center gap-1 text-[12px] text-faint">
       {items.map((item, index) => (
-        <span key={`${item.label}-${index}`} className="flex items-center gap-1">
+        <span key={item.label + "-" + index} className="flex items-center gap-1">
           {item.href ? (
-            <Link href={item.href} className="hover:text-paper">
+            <Link href={item.href} className="transition-colors hover:text-paper">
               {item.label}
             </Link>
           ) : (
             <span className="text-muted">{item.label}</span>
           )}
-          {index < items.length - 1 ? <ChevronRight className="h-3 w-3" /> : null}
+          {index < items.length - 1 ? <ChevronRight className="h-3 w-3 text-ink-500" /> : null}
         </span>
       ))}
     </div>
@@ -132,7 +139,7 @@ export function InlineProgress({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-3 text-[11.5px]">
         <span className="text-muted">{label}</span>
-        <span className="font-mono text-faint">{status || `${Math.round(value)}%`}</span>
+        <span className="text-faint">{status || String(Math.round(value)) + "%"}</span>
       </div>
       <Progress value={value} />
     </div>

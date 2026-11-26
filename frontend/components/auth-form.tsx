@@ -22,51 +22,67 @@ export function AuthLayout({
   footer: React.ReactNode;
 }) {
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1fr_1.05fr]">
-      <div className="relative hidden overflow-hidden border-r border-white/8 bg-ink-900 lg:block">
-        <div className="pointer-events-none absolute inset-0 ember-glow" />
-        <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" />
-        <div className="relative flex h-full flex-col justify-between p-10">
-          <Logo size={34} />
-          <div className="max-w-md">
-            <p className="text-[34px] font-semibold leading-tight tracking-tight">
-              Every long recording has a clip hiding in it.
-            </p>
-            <p className="mt-4 text-[13.5px] leading-relaxed text-muted">
-              FireClip reads the transcript, weighs the signals, and shows you exactly why a moment
-              is worth cutting. Then it helps you make it.
-            </p>
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              {[
-                ["12", "scoring signals"],
-                ["4", "aspect presets"],
-                ["1", "FFmpeg pipeline"],
-                ["0", "black-box scores"],
-              ].map(([value, label]) => (
-                <div key={label} className="rounded-lg border border-white/8 bg-ink-950/40 p-3">
-                  <p className="font-mono text-[18px] font-semibold text-flame-500">{value}</p>
-                  <p className="mt-0.5 text-[11px] text-faint">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <p className="text-[11px] text-faint">Open architecture · your footage, your storage, your keys.</p>
+    <div className="grid min-h-screen bg-ink-950 lg:grid-cols-[1.02fr_1fr]">
+      <aside className="relative hidden overflow-hidden border-r border-paper/[0.07] bg-ink-900 p-12 lg:flex lg:flex-col lg:justify-between">
+        <div className="relative">
+          <Link href="/" aria-label="FireClip home">
+            <Logo size={30} />
+          </Link>
         </div>
-      </div>
+        <div className="relative max-w-[430px]">
+          <h2 className="display text-[40px] text-paper">
+            Every long recording has a clip hiding in it.
+          </h2>
+          <p className="mt-5 text-[13.5px] leading-relaxed text-muted">
+            FireClip reads the transcript, weighs the signals, and shows you exactly why a moment is
+            worth cutting. Then it helps you make it.
+          </p>
+          <dl className="mt-9 divide-y divide-paper/[0.08] border-y border-paper/[0.08]">
+            {[
+              ["87", "Strong hook", "the opening line lands in 3 words"],
+              ["79", "Story payoff", "a claim, then the reason for it"],
+              ["74", "Concrete result", "numbers repeated from the source"],
+            ].map(([score, label, note]) => (
+              <div key={label} className="flex items-baseline gap-4 py-3">
+                <dt className="font-display text-[15px] font-semibold tabular-nums text-flame-400">{score}</dt>
+                <dd className="text-[12.5px] leading-snug text-muted">
+                  <span className="font-medium text-paper">{label}</span>
+                  <span className="block text-[11.5px] text-faint">{note}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="relative flex flex-wrap items-center gap-x-5 gap-y-1 text-[11.5px] text-faint">
+          <span>Open architecture</span>
+          <span>Files stay on your own storage</span>
+        </div>
+      </aside>
 
-      <div className="flex items-center justify-center px-5 py-12">
-        <div className="w-full max-w-[400px]">
-          <div className="mb-8 lg:hidden">
-            <Logo size={32} />
+      <main className="relative flex items-start justify-center overflow-hidden px-5 pb-12 pt-7 lg:items-center lg:py-12">
+        <Link
+          href="/"
+          className="absolute right-6 top-6 hidden text-[12px] text-faint transition-colors hover:text-paper lg:block"
+        >
+          Back to site
+        </Link>
+          <div className="relative w-full max-w-[400px]">
+          <div className="mb-10 flex items-center justify-between lg:hidden">
+            <Link href="/" aria-label="FireClip home">
+              <Logo size={30} />
+            </Link>
+            <Link href="/" className="text-[12px] text-faint transition-colors hover:text-paper">
+              Back to site
+            </Link>
           </div>
-          <div className="mb-7">
-            <h1 className="text-[26px] font-semibold tracking-tight">{title}</h1>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{subtitle}</p>
+          <div className="mb-8">
+            <h1 className="display text-[30px] text-paper">{title}</h1>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{subtitle}</p>
           </div>
           {children}
-          <div className="mt-6 text-center text-[12.5px] text-muted">{footer}</div>
+          <div className="mt-7 text-center text-[12.5px] text-muted">{footer}</div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -139,7 +155,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   if (verification) {
     return (
       <div className="space-y-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-flame-500/10 text-flame-500">
+        <div className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-card)] border border-paper/10 bg-flame-500/10 text-flame-500">
           <MailCheck className="h-5 w-5" />
         </div>
         <div>
@@ -153,7 +169,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         {verification.link ? (
           <a
             href={verification.link}
-            className="block break-all rounded-lg border border-flame-500/30 bg-ink-850 px-3 py-2 font-mono text-[11px] text-flame-400 hover:text-flame-500"
+            className="block break-all rounded-[var(--radius-control)] border border-flame-500/30 bg-ink-850 px-3 py-2 font-mono text-[11px] text-flame-400 hover:text-flame-500"
           >
             {verification.link}
           </a>
@@ -200,7 +216,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           minLength={8}
           value={form.password}
           onChange={update("password")}
-          placeholder="••••••••"
+          placeholder="Your password"
           autoComplete={mode === "register" ? "new-password" : "current-password"}
         />
       </Field>

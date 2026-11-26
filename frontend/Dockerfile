@@ -25,7 +25,11 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Startup report: which container the proxied API hostname actually reaches.
+COPY --chown=nextjs:nodejs check-api.mjs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 USER nextjs
-# 3000 is the default; Compose overrides PORT to match WEB_PORT.
+# 3000 is the default; Compose overrides PORT to match WEB_CONTAINER_PORT.
 EXPOSE 3000
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]

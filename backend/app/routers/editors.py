@@ -23,6 +23,7 @@ from ..schemas import (
     CaptionStyleCreate,
     CaptionTranslationRequest,
     CaptionStyleOut,
+    CaptionStyleUpdate,
     EditorCreate,
     EditorDetail,
     EditorOut,
@@ -429,3 +430,38 @@ def create_caption_style(payload: CaptionStyleCreate, ctx: RequestContext = Depe
     ctx.db.add(style)
     ctx.db.commit()
     return style
+
+
+@router.patch("/caption-styles/{style_id}", response_model=CaptionStyleOut)
+def update_caption_style(
+    style_id: str, payload: CaptionStyleUpdate, ctx: RequestContext = Depends(get_context)
+):
+    ctx.require("editor")
+    style = ctx.db.get(CaptionStyle, style_id)
+    if not style:
+        raise HTTPException(status_code=404, detail="Caption style not found")
+    if style.is_builtin:
+        raise HTTPException(status_code=403, detail="Built-in styles cannot be edited")
+    if style.workspace_id != ctx.workspace.id:
+        raise HTTPException(status_code=404, detail="Caption style not found")
+    if payload.name is not None:
+        style.name = payload.name.strip()[:80]
+    if payload.config is not None:
+        style.config = payload.config
+    ctx.db.commit()
+    ctx.db.refresh(style)
+    return style
+
+
+@router.delete("/caption-styles/{style_id}", status_code=204)
+def delete_caption_style(style_id: str, ctx: RequestContext = Depends(get_context)):
+    ctx.require("editor")
+    style = ctx.db.get(CaptionStyle, style_id)
+    if not style:
+        raise HTTPException(status_code=404, detail="Caption style not found")
+    if style.is_builtin:
+        raise HTTPException(status_code=403, detail="Built-in styles cannot be deleted")
+    if style.workspace_id != ctx.workspace.id:
+        raise HTTPException(status_code=404, detail="Caption style not found")
+    ctx.db.delete(style)
+    ctx.db.commit()

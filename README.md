@@ -145,12 +145,14 @@ Each stage is a real background job, not a request handler, so a long source nev
 | Transcription | faster-whisper or OpenAI Whisper, word timestamps, editable segments |
 | Clip discovery | Explainable offline scoring, or OpenAI, Anthropic, Gemini, Ollama |
 | Campaigns | Reusable brief, brand kit, required hashtags, headline/CTA overlays, JSON campaign discovery and one-click onboarding |
-| Editor | Timeline, trim, fill/fit/face-cam layouts, face-anchored auto-crop, caption presets, headings, translated captions, overlays, music, fades, undo/redo |
+| Editor | Timeline, trim, fill/fit, face-cam and gameplay layouts, face-anchored auto-crop, full-look presets, caption styles, headings, translated captions, overlays, music, fades, undo/redo |
+| Clip quality | Still-screen and slate detection with an explicit "keep anyway" override |
 | Rendering | 9:16, 1:1, 16:9 and 4:5 presets, MP4/MOV/WebM, burned ASS captions, loudness normalization |
 | Publishing | YouTube, Facebook, Instagram Reels and TikTok, manual or scheduled, campaign auto-publish with a quality floor |
 | Schedule | One timeline for queued, scheduled, published and failed posts, with direct post links, cancel and retry |
 | Analytics | Platform metric sync, plus manual numbers labelled by source |
-| Live | Streamer roster, public YouTube/Twitch/Kick recording and optional auto-clip |
+| Live | Creator search, streamer roster, public YouTube/Twitch/Kick recording and optional auto-clip |
+| Library | Real dimensions/duration, direct downloads, bulk ZIP download and share links |
 | Teams | Workspaces with owner/admin/editor/viewer roles, email invitations, audit log |
 | Review | Threaded clip comments with resolve state, bulk approve/reject/merge/delete |
 | Sharing | Password-protected, expiring public links for any export, with view counts |

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Shared clip · FireClip",
+  title: "Shared clip | FireClip",
   robots: { index: false, follow: false, nocache: true },
 };
 

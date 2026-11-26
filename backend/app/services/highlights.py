@@ -243,7 +243,7 @@ def _explain(signals: dict[str, float], duration_s: float, speakers: int) -> str
         text += " The window contains a speaker exchange, which adds conversational energy."
     if weaknesses:
         text += f" Weak spots to review: {', '.join(weaknesses)}."
-    text += " Scores come from transcript signals only - never from audio loudness."
+    text += " Scores come from transcript signals only, never from audio loudness."
     return text
 
 

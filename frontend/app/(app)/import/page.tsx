@@ -57,9 +57,7 @@ export default function ImportPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        eyebrow="Ingest"
-        title="Import from a URL"
+      <PageHeader        title="Import from a URL"
         description="FireClip fetches the source with yt-dlp when available, probes it, then runs the same pipeline as an upload."
       />
 
@@ -84,10 +82,10 @@ export default function ImportPage() {
               {PLATFORMS.map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-lg border px-3 py-2.5 ${
+                  className={`rounded-[var(--radius-control)] border px-3 py-2.5 ${
                     platform === item.id && url
                       ? "border-flame-500/35 bg-flame-500/5"
-                      : "border-white/8 bg-ink-850/60"
+                      : "border-paper/8 bg-ink-850/60"
                   }`}
                 >
                   <p className="text-[12px] font-medium">{item.label}</p>
@@ -157,7 +155,7 @@ export default function ImportPage() {
               the API returns a clear configuration error rather than a fake job. Direct video URLs are
               fetched over HTTP with SSRF protection.
             </p>
-            <div className="mt-3 rounded-lg border border-white/8 bg-ink-950/50 px-3 py-2 font-mono text-[10.5px] text-faint">
+            <div className="mt-3 rounded-[var(--radius-control)] border border-paper/8 bg-ink-950/50 px-3 py-2 font-mono text-[10.5px] text-faint">
               pip install yt-dlp
             </div>
           </Panel>

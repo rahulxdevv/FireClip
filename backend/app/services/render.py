@@ -18,6 +18,7 @@ from ..config import settings
 from ..models import EditingProject, SourceVideo
 from ..storage import build_key, get_storage
 from . import captions as caption_service
+from . import storage_guard
 from .media import MediaError, extract_thumbnail, probe, run_ffmpeg
 from .transcription import SegmentData
 
@@ -122,7 +123,7 @@ def build_filter_graph(
             f"[fg0]scale={width}:{height}:force_original_aspect_ratio=decrease,setsar=1[fg]",
             "[bg][fg]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2,format=yuv420p[base]",
         ]
-    elif mode == "facecam":
+    elif mode in {"facecam", "gameplay"}:
         cam_x = min(0.82, max(0.0, float(layout.get("camera_x", 0.62))))
         cam_y = min(0.82, max(0.0, float(layout.get("camera_y", 0.55))))
         cam_w = min(1.0 - cam_x, max(0.18, float(layout.get("camera_w", 0.38))))
@@ -151,10 +152,16 @@ def build_filter_graph(
                 f"[cam0]crop=iw*{cam_w:.4f}:ih*{cam_h:.4f}:iw*{cam_x:.4f}:ih*{cam_y:.4f},"
                 f"scale={pip_width}:-2,setsar=1[cam]"
             )
+        background = (
+            f"[bg0]scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},setsar=1[bg]"
+            if mode == "gameplay"
+            else f"[bg0]scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},boxblur=18:2,setsar=1[bg]"
+        )
         filters = [
             "[0:v]split=2[bg0][cam0]",
-            f"[bg0]scale={width}:{height}:force_original_aspect_ratio=increase,"
-            f"crop={width}:{height},boxblur=18:2,setsar=1[bg]",
+            background,
             camera_filter,
             f"[bg][cam]overlay=x=(main_w-overlay_w)*{pos_x:.4f}:y=(main_h-overlay_h)*{pos_y:.4f}:"
             "shortest=1,format=yuv420p[base]",
@@ -266,6 +273,10 @@ def render_project(
 ) -> RenderResult:
     if not video.storage_key:
         raise RenderError("Source video has no stored file")
+    try:
+        storage_guard.check_disk(0)
+    except storage_guard.StorageGuardError as exc:
+        raise RenderError(str(exc)) from exc
     storage = get_storage()
     width, height = output_dimensions(project, preset, width_override, height_override, fmt)
     start_ms = max(0, int(project.trim_start_ms))

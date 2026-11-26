@@ -5,6 +5,7 @@
 | Symptom | Fix |
 | --- | --- |
 | Jobs stay queued | Start the worker (`docker compose ps`, logs) or use `JOB_RUNNER=inline`. |
+| Every `/api` call returns 500, web log says `Failed to proxy ... ECONNREFUSED` | The web container cannot reach the API container. Its first log line after starting reports what `API_BASE_URL` resolved to and whether `/health` answered. Compare that address with `docker inspect -f '{{.Name}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $(docker ps -q)`: if it belongs to another project's `api` container, stop that container or move it off the shared network. The proxy targets the unique alias `fireclip-api`, so rebuild the web image after changing Compose. |
 | `alembic: relation already exists` | Don't enable `AUTO_MIGRATE` together with the migration entrypoint. |
 | Login redirects immediately | Cookie blocked: check `FRONTEND_URL`, `COOKIE_SECURE` and TLS. |
 | Upload fails around 1 MB | Raise the reverse proxy body limit and disable request buffering. |

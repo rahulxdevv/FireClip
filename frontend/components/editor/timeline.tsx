@@ -52,7 +52,7 @@ export function Timeline({
   }
 
   return (
-    <div className="rounded-xl border border-white/8 bg-ink-850 p-3">
+    <div className="rounded-[var(--radius-card)] border border-paper/8 bg-ink-850 p-3">
       <div className="mb-2.5 flex items-center justify-between gap-2 font-mono text-[10px] text-faint">
         <span>{formatTimecode(0)}</span>
         <span className="text-muted">
@@ -63,7 +63,7 @@ export function Timeline({
 
       <div
         ref={trackRef}
-        className="relative h-20 cursor-crosshair overflow-hidden rounded-lg border border-white/8 bg-ink-900"
+        className="relative h-20 cursor-crosshair overflow-hidden rounded-[var(--radius-control)] border border-paper/8 bg-ink-900"
         onPointerDown={(event) => {
           if ((event.target as HTMLElement).dataset.handle) return;
           const ms = positionToMs(event.clientX);
@@ -74,7 +74,7 @@ export function Timeline({
           {Array.from({ length: 90 }).map((_, index) => (
             <span
               key={index}
-              className="flex-1 rounded-sm bg-white/10"
+              className="flex-1 rounded-sm bg-paper/10"
               style={{
                 height: `${12 + Math.abs(Math.sin(index * 0.55)) * 54}%`,
               }}
@@ -134,7 +134,7 @@ export function Timeline({
 
       <div className="mt-2.5 grid grid-cols-2 gap-3">
         <label className="flex items-center gap-2 text-[10px] text-faint">
-          <span className="w-8 shrink-0 font-mono">in</span>
+          <span className="w-8 shrink-0">in</span>
           <input
             type="range"
             min={0}
@@ -146,7 +146,7 @@ export function Timeline({
           />
         </label>
         <label className="flex items-center gap-2 text-[10px] text-faint">
-          <span className="w-8 shrink-0 font-mono">out</span>
+          <span className="w-8 shrink-0">out</span>
           <input
             type="range"
             min={0}
@@ -205,7 +205,7 @@ export function FramingPreview({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-lg border border-white/10 bg-black",
+        "relative overflow-hidden rounded-[var(--radius-control)] border border-paper/10 bg-black",
         aspect === "9:16"
           ? "aspect-[9/16]"
           : aspect === "1:1"
@@ -237,12 +237,12 @@ export function FramingPreview({
             className="h-full w-full object-cover"
             style={{ objectPosition: `${focusX * 100}% ${focusY * 100}%` }}
           />
-          <span className="absolute bottom-0.5 left-1 rounded bg-black/70 px-1 py-0.5 font-mono text-[7px] text-white/80">cam</span>
+          <span className="absolute bottom-0.5 left-1 rounded bg-black/70 px-1 py-0.5 font-mono text-[7px] text-paper/80">cam</span>
         </div>
       ) : null}
       <div className="pointer-events-none absolute inset-0 border border-flame-500/30" />
-      <span className="absolute bottom-1.5 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] text-white/80">
-        {mode === "facecam" ? "face cam" : mode === "fit" ? "fit" : `${aspect} · ${Math.round(focusX * 100)}/${Math.round(focusY * 100)}`}
+      <span className="absolute bottom-1.5 left-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] text-paper/80">
+        {mode === "facecam" ? "face cam" : mode === "fit" ? "fit" : `${aspect}, ${Math.round(focusX * 100)}/${Math.round(focusY * 100)}`}
       </span>
     </div>
   );

@@ -64,9 +64,7 @@ export default function AnalyticsPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Insights"
-        title="Analytics"
+      <PageHeader        title="Analytics"
         description="Only measured numbers appear here. FireClip never estimates views, retention or engagement."
         actions={
           <>
@@ -124,14 +122,14 @@ export default function AnalyticsPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[560px] text-left text-[11.5px]">
-                  <thead className="border-b border-white/8 text-faint">
+                  <thead className="border-b border-paper/8 text-faint">
                     <tr>
                       {["Post", "Platform", "Views", "Likes", "Comments", "Source"].map((head) => (
                         <th key={head} className="px-4 py-2.5 font-medium">{head}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-paper/5">
                     {data.top_posts.map((post, index) => (
                       <tr key={`${post.publishing_job_id}-${index}`}>
                         <td className="max-w-[220px] truncate px-4 py-2.5 text-paper">
@@ -200,13 +198,13 @@ export default function AnalyticsPage() {
           </Panel>
         ) : (
           <Panel>
-            <div className="divide-y divide-white/6">
+            <div className="divide-y divide-paper/6">
               {published.map((job) => (
                 <div key={job.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-[12.5px] text-paper">{job.caption || job.title || job.video_title}</p>
                     <p className="mt-0.5 font-mono text-[10px] text-faint">
-                      {job.platform} · {job.account_name} · {formatDateTime(job.published_at)}
+                      {job.platform}, {job.account_name}, {formatDateTime(job.published_at)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -303,7 +301,7 @@ function ManualEntryDialog({
             <option value="">Select a post</option>
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
-                {job.platform} · {job.caption?.slice(0, 40) || job.title || job.id.slice(0, 6)}
+                {job.platform}, {job.caption?.slice(0, 40) || job.title || job.id.slice(0, 6)}
               </option>
             ))}
           </Select>

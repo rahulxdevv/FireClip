@@ -86,7 +86,7 @@ export default function LivePage() {
     setActionId(stream.id);
     try {
       await api.post(`/api/live-streams/${stream.id}/stop`);
-      toast("Recording stopped - the capture will finish processing", "info");
+      toast("Recording stopped. The capture will finish processing.", "info");
       refresh();
     } catch (err) {
       toast(errorMessage(err), "error");
@@ -122,9 +122,7 @@ export default function LivePage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        eyebrow="Ingest"
-        title="Live streams"
+      <PageHeader        title="Live streams"
         description="Watch public live URLs, record automatically when the stream goes live, and run the capture through a campaign’s clip brief."
       />
 
@@ -152,7 +150,7 @@ export default function LivePage() {
                 ))}
               </Select>
             </Field>
-            <div className="space-y-3 rounded-xl border border-white/8 bg-ink-850/50 p-3.5">
+            <div className="space-y-3 rounded-[var(--radius-card)] border border-paper/8 bg-ink-850/50 p-3.5">
               <Switch
                 checked={autoRecord}
                 onCheckedChange={setAutoRecord}
@@ -213,7 +211,7 @@ export default function LivePage() {
                     </div>
                     <p className="mt-2 text-[11px] text-faint">
                       Added {formatDateTime(stream.created_at)}
-                      {stream.started_at ? ` · started ${formatDateTime(stream.started_at)}` : ""}
+                      {stream.started_at ? `, started ${formatDateTime(stream.started_at)}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -244,7 +242,7 @@ export default function LivePage() {
                     <Video className="h-3.5 w-3.5" /> Open the recorded video
                   </Link>
                 ) : null}
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/6 pt-3">
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-paper/6 pt-3">
                   <Switch
                     checked={stream.auto_record}
                     disabled={actionId === stream.id || stream.status === "recording"}

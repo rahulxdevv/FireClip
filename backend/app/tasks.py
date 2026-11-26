@@ -31,7 +31,7 @@ from .models import (
     Workspace,
 )
 from .services import ai as ai_service
-from .services import auto_publish, billing, highlights, media, sources, transcription
+from .services import auto_publish, billing, highlights, media, sources, static_screens, transcription
 from .services.render import cleanup_temp, render_project
 from .services.webhooks import emit as emit_webhook
 from .storage import build_key, get_storage
@@ -459,6 +459,38 @@ def transcribe_video(reporter: JobReporter) -> None:
 # --- Analysis -------------------------------------------------------------
 
 
+def _static_ranges_for_video(video_id: str, reporter: JobReporter) -> list[dict[str, int]]:
+    """Return cached still-screen ranges, scanning and caching them when needed."""
+    if not settings.static_screen_filter:
+        return []
+    with session_scope() as db:
+        video = db.get(SourceVideo, video_id)
+        if not video or not video.storage_key:
+            return []
+        cached = (video.metadata_extra or {}).get("static_ranges")
+        if isinstance(cached, list):
+            return [item for item in cached if isinstance(item, dict)]
+        storage_key = video.storage_key
+    reporter.progress(20, "checking for still screens")
+    try:
+        with get_storage().temp_copy(storage_key) as media_path:
+            ranges = static_screens.detect_ranges(media_path)
+    except Exception:  # a failed scan must never block analysis
+        logger.warning("Still-screen scan failed for video %s", video_id, exc_info=True)
+        return []
+    with session_scope() as db:
+        video = db.get(SourceVideo, video_id)
+        if video:
+            extra = dict(video.metadata_extra or {})
+            extra["static_ranges"] = ranges
+            extra["static_screen_seconds"] = round(
+                sum(max(0, item["end_ms"] - item["start_ms"]) for item in ranges) / 1000, 1
+            )
+            video.metadata_extra = extra
+            db.commit()
+    return ranges
+
+
 @task("analyze_video")
 def analyze_video(reporter: JobReporter) -> None:
     payload = reporter.payload
@@ -467,6 +499,7 @@ def analyze_video(reporter: JobReporter) -> None:
     target_duration_ms = int(payload.get("target_duration_ms") or settings.default_clip_duration_ms)
     clip_count = int(payload.get("clip_count") or settings.default_clip_count)
     replace_existing = bool(payload.get("replace_existing", True))
+    ignore_static = bool(payload.get("ignore_static", False))
     auto_render_jobs: list[str] = []
 
     with session_scope() as db:
@@ -517,6 +550,7 @@ def analyze_video(reporter: JobReporter) -> None:
         usage_ratio = len(transcript.full_text) / 4  # rough token estimate
 
     try:
+        static_ranges = _static_ranges_for_video(video_id, reporter)
         reporter.progress(25, "analyzing")
         with session_scope() as db:
             try:
@@ -552,10 +586,23 @@ def analyze_video(reporter: JobReporter) -> None:
                 (workspace.monthly_clip_limit if workspace else 0)
                 - billing.clips_used_this_month(db, workspace_id),
             )
-            selected = [
-                clip for clip in result.clips if clip.virality_score >= campaign_min_score
-            ][:remaining]
-
+            selected = []
+            static_skipped = 0
+            for clip in result.clips:
+                if clip.virality_score < campaign_min_score:
+                    continue
+                if static_ranges and not ignore_static and static_screens.overlap_ratio(
+                    clip.start_ms, clip.end_ms, static_ranges
+                ) > settings.static_screen_max_overlap:
+                    static_skipped += 1
+                    continue
+                selected.append(clip)
+            selected = selected[:remaining]
+            if static_skipped and remaining > 0 and not selected:
+                raise RuntimeError(
+                    "Every proposed moment lands on a still screen, slate or ad break. "
+                    "Disable STATIC_SCREEN_FILTER or lower STATIC_SCREEN_MAX_OVERLAP to keep them."
+                )
             month_start = _now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             render_seconds_used = float(
                 db.scalar(
@@ -694,7 +741,11 @@ def analyze_video(reporter: JobReporter) -> None:
             analysis.status = "completed"
             analysis.provider = result.provider
             analysis.model = result.model
-            analysis.summary = result.summary
+            analysis.summary = result.summary + (
+                f" Skipped {static_skipped} proposed moment(s) that landed on a still screen."
+                if static_skipped
+                else ""
+            )
             analysis.topics = result.topics
             analysis.clip_count = len(selected)
             video.status = "ready"
